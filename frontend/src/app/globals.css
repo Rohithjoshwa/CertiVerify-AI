@@ -1,0 +1,243 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-indigo: #4F46E5;
+    --brand-navy: #10213A;
+    --ai-bg-base: #fafafa;
+    --ai-bg-surface: #ffffff;
+    --ai-bg-subtle: #f3f4f6;
+    --ai-bg-hover: #eef2ff;
+    --ai-border: #e2e8f0;
+    --ai-text-primary: #10213A;
+    --ai-text-secondary: #475569;
+    --ai-text-muted: #94a3b8;
+    --ai-accent: #4F46E5;
+    --ai-accent-hover: #4338ca;
+    --ai-accent-light: #e0e7ff;
+    --ai-success: #059669;
+    --ai-warning: #d97706;
+    --ai-danger: #dc2626;
+  }
+
+  html,
+  body {
+    background-color: #000f21;
+    color: #c3c6d7;
+    font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+@layer components {
+  /* --- Figma Design System Primitives --- */
+
+  /* Surface Cards (8px radius) */
+  .figma-card {
+    background-color: #0b1c30;
+    border: 1px solid #1b2b3f;
+    border-radius: 8px;
+  }
+
+  .figma-card-elevated {
+    background-color: #102034;
+    border: 1px solid #1b2b3f;
+    border-radius: 8px;
+  }
+
+  /* Inputs & Form Elements (4px radius) */
+  .figma-input {
+    background-color: #000f21;
+    border: 1px solid #1b2b3f;
+    border-radius: 4px;
+    color: #d3e4fe;
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .figma-input:focus {
+    border-color: #4F46E5;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+  }
+
+  /* Buttons (4px radius) */
+  .figma-btn {
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+  }
+
+  /* Status Badges (2px radius) */
+  .figma-badge {
+    border-radius: 2px;
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .figma-badge-genuine {
+    background-color: rgba(78, 222, 163, 0.12);
+    border: 1px solid rgba(78, 222, 163, 0.35);
+    color: #4edea3;
+  }
+
+  .figma-badge-suspicious {
+    background-color: rgba(255, 185, 95, 0.12);
+    border: 1px solid rgba(255, 185, 95, 0.35);
+    color: #ffb95f;
+  }
+
+  .figma-badge-fake {
+    background-color: rgba(147, 0, 10, 0.35);
+    border: 1px solid rgba(255, 180, 171, 0.35);
+    color: #ffb4ab;
+  }
+
+  .figma-badge-info {
+    background-color: rgba(79, 70, 229, 0.15);
+    border: 1px solid rgba(180, 197, 255, 0.35);
+    color: #b4c5ff;
+  }
+
+  .figma-badge-neutral {
+    background-color: #102034;
+    border: 1px solid #1b2b3f;
+    color: #8d90a0;
+  }
+
+  /* Machine Data / Monospace Text */
+  .figma-mono-data {
+    font-family: var(--font-jetbrains-mono), monospace;
+    color: #d3e4fe;
+    letter-spacing: -0.01em;
+  }
+
+  /* Structural Shell Elements */
+  .figma-sidebar {
+    width: 288px;
+    background-color: #000f21;
+    border-right: 1px solid #1b2b3f;
+  }
+
+  .figma-header {
+    height: 64px;
+    background-color: #000f21;
+    border-bottom: 1px solid #1b2b3f;
+  }
+
+  .figma-content {
+    max-width: 992px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Legacy utility classes preserved for backwards compatibility */
+  .glass-panel {
+    background: rgba(11, 28, 48, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid #1b2b3f;
+  }
+
+  .glass-card {
+    background: #0b1c30;
+    border: 1px solid #1b2b3f;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-elevated {
+    background: #102034;
+    border: 1px solid #1b2b3f;
+    border-radius: 8px;
+  }
+
+  .glass-input {
+    background: #000f21;
+    border: 1px solid #1b2b3f;
+    border-radius: 4px;
+    color: #d3e4fe;
+  }
+}
+
+/* Print Optimization for Official Forensic Verification Dossier */
+@media print {
+  aside,
+  header,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  body,
+  main {
+    background: #000f21 !important;
+    color: #d3e4fe !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .verification-report-panel {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+@keyframes splashScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInDelayed {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-splash-scale {
+  animation: splashScale 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-delayed {
+  animation: fadeInDelayed 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

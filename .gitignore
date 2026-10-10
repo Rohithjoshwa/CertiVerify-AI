@@ -1,0 +1,59 @@
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+
+# Backend
+backend/venv/
+backend/venv_win/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+**/__pycache__/
+
+# Large Archives & Binaries (>100MB)
+*.zip
+*.tar
+*.tar.gz
+*.rar
+CertiVerify_Phase6_Enterprise.zip
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+backend/.env
+
+# Databases & local journals
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Uploads
+backend/uploads/
+uploads/
+
+# Logs
+*.log
+logs/
+
+# Python
+*.pyc
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+powershell.cmd
+
+# Temporary files
+scratch/
+tmp/
+temp/
+
+# IDE
+.vscode/
+.idea/
