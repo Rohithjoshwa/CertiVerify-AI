@@ -1,8 +1,7 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User, Shield } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { authApi, clearTokens, getAccessToken, UserResponse } from "@/lib/api";
 
 export const UserProfile: React.FC = () => {
@@ -21,7 +20,7 @@ export const UserProfile: React.FC = () => {
     try {
       await authApi.logout();
     } catch {
-      // ignore network errors on logout
+      // ignore network errors
     } finally {
       clearTokens();
       router.push("/login");
@@ -38,28 +37,27 @@ export const UserProfile: React.FC = () => {
     .toUpperCase();
 
   return (
-    <div className="border-t border-[#1b2b3f] p-4 bg-[#000f21]">
+    <div className="border-t border-slate-200 p-3.5 bg-slate-50/60">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-[4px] bg-[#102034] border border-[#1b2b3f] flex items-center justify-center text-xs font-mono font-bold text-[#b4c5ff] shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700 shrink-0">
             {initials || <User size={14} />}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#d3e4fe] truncate leading-tight font-sans">
+            <p className="text-xs font-semibold text-slate-900 truncate leading-tight">
               {displayName}
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="font-mono text-[10px] text-[#4edea3] uppercase tracking-wider font-semibold">
-                {displayRole}
-              </span>
-            </div>
+            <p className="text-[10px] text-slate-500 font-medium tracking-wide mt-0.5">
+              {displayRole}
+            </p>
           </div>
         </div>
 
         <button
           onClick={handleLogout}
-          title="Sign out of CertiVerify"
-          className="p-1.5 text-[#8d90a0] hover:text-[#ffb4ab] hover:bg-[#93000a]/20 rounded-[4px] border border-transparent hover:border-[#ffb4ab]/30 transition-colors shrink-0"
+          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+          title="Sign out"
+          aria-label="Sign out"
         >
           <LogOut size={16} />
         </button>
@@ -67,3 +65,5 @@ export const UserProfile: React.FC = () => {
     </div>
   );
 };
+
+export default UserProfile;

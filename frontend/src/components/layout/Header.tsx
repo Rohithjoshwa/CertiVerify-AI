@@ -60,183 +60,189 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
       .catch(() => setOrg(null));
   }, []);
 
-  // Close dropdowns on outside click
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    const handleClickOutside = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setShowNotifications(false);
       }
       if (orgRef.current && !orgRef.current.contains(e.target as Node)) {
         setShowOrgDropdown(false);
       }
-    }
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const sampleAlerts = [
+  const notifications = [
     {
       id: "1",
-      title: "Verification Engine Ready",
-      message: "OCR, Blockchain and Tamper Analysis services are online.",
-      type: "info",
+      title: "Integrity Engine Online",
+      description: "Forensic ELA and OCR fusion models loaded.",
       time: "Just now",
+      icon: CheckCircle2,
+      color: "text-emerald-600",
     },
     {
       id: "2",
-      title: "Security Boundary Enforced",
-      message: "Tenant isolation and RBAC security rules verified.",
-      type: "success",
-      time: "5 min ago",
+      title: "Tamper Defense Active",
+      description: "Metadata inspection and clone detection running.",
+      time: "2m ago",
+      icon: AlertTriangle,
+      color: "text-amber-600",
+    },
+    {
+      id: "3",
+      title: "Smart Contract Connected",
+      description: "SHA-256 batch anchor sync in progress.",
+      time: "5m ago",
+      icon: Info,
+      color: "text-indigo-600",
     },
   ];
 
   return (
-    <header className="h-[64px] bg-[#000f21] border-b border-[#1b2b3f] px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shrink-0">
-      {/* Left: Mobile Toggle & Breadcrumb */}
+    <header className="h-[64px] bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
+      {/* Left: Mobile Toggle & Page Title / Breadcrumb */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onOpenMobileSidebar}
-          className="p-1.5 text-[#8d90a0] hover:text-[#d3e4fe] hover:bg-[#102034] rounded-[4px] border border-[#1b2b3f] lg:hidden shrink-0"
-          aria-label="Open sidebar menu"
+          className="lg:hidden p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+          aria-label="Open sidebar navigation"
         >
-          <Menu size={18} />
+          <Menu size={20} />
         </button>
 
-        <div className="flex items-center gap-2 truncate">
-          <div className="lg:hidden shrink-0">
-            <Logo size="sm" isDark={true} href="/dashboard" ariaLabel="CertiVerify Home" />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="lg:hidden">
+            <Logo size="sm" showText={false} />
           </div>
-          <span className="text-xs font-mono text-[#8d90a0] hidden lg:inline-block">
-            CertiVerify /
-          </span>
-          <span className="text-xs sm:text-sm font-semibold text-[#d3e4fe] truncate font-sans">
-            {getBreadcrumb(pathname)}
-          </span>
+          <div className="flex flex-col min-w-0">
+            <h1 className="text-sm font-semibold text-slate-900 truncate tracking-tight">
+              {getBreadcrumb(pathname)}
+            </h1>
+            <span className="text-[10px] text-slate-400 font-medium hidden sm:block">
+              CertiVerify AI Forensic Platform
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Organization Switcher (Top Bar) */}
-      <div className="hidden lg:flex items-center relative" ref={orgRef}>
-        <button
-          onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-[#0b1c30] hover:bg-[#102034] border border-[#1b2b3f] rounded-[4px] text-xs transition-colors"
-          title="Current Organization"
+      {/* Right: Quick Ingestion, Search, Notifications, Organization */}
+      <div className="flex items-center gap-2.5">
+        {/* Quick Ingest Button */}
+        <Link
+          href="/dashboard/upload"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer"
         >
-          <Building2 size={14} className="text-[#38bdf8]" />
-          <span className="font-medium text-[#d3e4fe] max-w-[160px] truncate">
-            {org ? org.name : "Default Organization"}
-          </span>
-          <span className="font-mono text-[9px] px-1 py-0.5 bg-[#102034] text-[#8d90a0] border border-[#1b2b3f] rounded">
-            {org ? org.slug : "tenant"}
-          </span>
-          <ChevronDown size={13} className="text-[#8d90a0]" />
-        </button>
+          <Upload size={14} />
+          <span>Upload</span>
+        </Link>
 
-        {showOrgDropdown && (
-          <div className="absolute top-full left-0 mt-2 w-64 bg-[#0b1c30] border border-[#1b2b3f] rounded-[6px] shadow-2xl p-3 z-50">
-            <div className="text-[10px] font-mono text-[#8d90a0] uppercase tracking-wider mb-2 font-semibold">
-              Current Organization
-            </div>
-            <div className="p-2 bg-[#102034] rounded-[4px] border border-[#1b2b3f] mb-3">
-              <div className="text-xs font-semibold text-[#d3e4fe]">{org?.name || "CertiVerify Enterprise"}</div>
-              <div className="text-[10px] font-mono text-[#8d90a0] mt-0.5">ID: {org?.id || "default-org"}</div>
-              <div className="text-[10px] font-mono text-[#4edea3] mt-1 inline-block uppercase font-bold">
-                STATUS: {org?.status || "ACTIVE"}
-              </div>
-            </div>
-            <Link
-              href="/dashboard/organization"
-              onClick={() => setShowOrgDropdown(false)}
-              className="block w-full text-center text-xs text-[#2563eb] hover:text-[#b4c5ff] font-medium py-1.5 bg-[#000f21] hover:bg-[#102034] rounded-[4px] border border-[#1b2b3f] transition-colors"
-            >
-              Manage Organization & Members
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {/* Center: Command / Search Bar (Desktop) */}
-      <div className="hidden md:flex items-center flex-1 max-w-sm mx-2">
-        <div className="relative w-full">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8d90a0] pointer-events-none"
-          />
+        {/* Global Search Mock */}
+        <div className="hidden md:flex items-center relative">
+          <Search size={14} className="absolute left-3 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search certificates, jobs, hashes..."
-            className="w-full bg-[#0b1c30] border border-[#1b2b3f] rounded-[4px] pl-9 pr-8 py-1.5 text-xs text-[#d3e4fe] placeholder:text-[#8d90a0] focus:outline-none focus:border-[#4F46E5] transition-colors"
+            placeholder="Search certificates..."
+            className="w-48 lg:w-64 pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-colors"
           />
         </div>
-      </div>
 
-      {/* Right Controls: System Status, Notifications & Action */}
-      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-        {/* System Status Indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-[#0b1c30] border border-[#1b2b3f] rounded-[2px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3] animate-pulse" />
-          <span className="font-mono text-[10px] text-[#4edea3] font-semibold tracking-wider uppercase">
-            ONLINE
-          </span>
-        </div>
+        {/* Organization Switcher */}
+        {org && (
+          <div className="relative" ref={orgRef}>
+            <button
+              onClick={() => setShowOrgDropdown(!showOrgDropdown)}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+              aria-expanded={showOrgDropdown}
+              aria-label="Organization options"
+            >
+              <Building2 size={13} className="text-indigo-600" />
+              <span className="font-medium truncate max-w-[110px]">{org.name}</span>
+              <ChevronDown size={12} className="text-slate-400" />
+            </button>
 
-        {/* Notification Bell */}
+            {showOrgDropdown && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg p-2 z-50 animate-in fade-in zoom-in-95">
+                <div className="p-2 border-b border-slate-100">
+                  <p className="text-xs font-semibold text-slate-900">{org.name}</p>
+                  <p className="text-[10px] text-slate-500 font-mono">Tenant ID: {org.id.slice(0, 8)}</p>
+                </div>
+                <div className="pt-1">
+                  <Link
+                    href="/dashboard/organization"
+                    onClick={() => setShowOrgDropdown(false)}
+                    className="block px-2.5 py-1.5 text-xs text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-md transition-colors"
+                  >
+                    Manage Organization
+                  </Link>
+                  <Link
+                    href="/dashboard/api-keys"
+                    onClick={() => setShowOrgDropdown(false)}
+                    className="block px-2.5 py-1.5 text-xs text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-md transition-colors"
+                  >
+                    API Credentials
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            title="Notifications & Alerts"
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg relative transition-colors cursor-pointer"
             aria-label="View notifications"
-            className="p-2 text-[#8d90a0] hover:text-[#d3e4fe] hover:bg-[#102034] rounded-[4px] border border-transparent hover:border-[#1b2b3f] transition-colors relative"
           >
-            <Bell size={16} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#2563eb] rounded-full animate-ping" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#2563eb] rounded-full" />
+            <Bell size={18} />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-600" />
           </button>
 
           {showNotifications && (
-            <div className="absolute top-full right-0 mt-2 w-80 bg-[#0b1c30] border border-[#1b2b3f] rounded-[6px] shadow-2xl z-50 overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#1b2b3f] flex items-center justify-between">
-                <span className="text-xs font-semibold text-[#d3e4fe]">System Notifications</span>
+            <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95">
+              <div className="p-3.5 border-b border-slate-100 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-900">System Notifications</span>
                 <button
                   onClick={() => setShowNotifications(false)}
-                  className="text-[#8d90a0] hover:text-white"
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded"
                 >
                   <X size={14} />
                 </button>
               </div>
-              <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
-                {sampleAlerts.map((alert) => (
-                  <div key={alert.id} className="p-2.5 bg-[#000f21] rounded border border-[#1b2b3f] text-xs">
-                    <div className="flex items-center justify-between text-[#d3e4fe] font-semibold mb-1">
-                      <span className="flex items-center gap-1.5">
-                        {alert.type === "success" ? (
-                          <CheckCircle2 size={13} className="text-[#4edea3]" />
-                        ) : (
-                          <Info size={13} className="text-[#38bdf8]" />
-                        )}
-                        {alert.title}
-                      </span>
-                      <span className="font-mono text-[9px] text-[#8d90a0]">{alert.time}</span>
+
+              <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                {notifications.map((n) => {
+                  const Icon = n.icon;
+                  return (
+                    <div key={n.id} className="p-3 hover:bg-slate-50 flex items-start gap-2.5 transition-colors">
+                      <Icon size={16} className={`${n.color} mt-0.5 shrink-0`} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-800 leading-tight">{n.title}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{n.description}</p>
+                        <span className="text-[10px] text-slate-400 mt-1 block">{n.time}</span>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-[#8d90a0] leading-snug">{alert.message}</p>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+
+              <div className="p-2.5 bg-slate-50 border-t border-slate-100 text-center">
+                <Link
+                  href="/dashboard/jobs"
+                  onClick={() => setShowNotifications(false)}
+                  className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+                >
+                  View all pipeline tasks →
+                </Link>
               </div>
             </div>
           )}
         </div>
-
-        {/* Quick Upload Action */}
-        <Link
-          href="/dashboard/upload"
-          className="flex items-center gap-1.5 bg-[#4F46E5] hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-[4px] shadow-sm shadow-indigo-500/20 transition-all active:scale-[0.98]"
-        >
-          <Upload size={13} />
-          <span className="hidden sm:inline">Upload Certificate</span>
-          <span className="sm:hidden">+</span>
-        </Link>
       </div>
     </header>
   );
 };
+
+export default Header;
