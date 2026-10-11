@@ -1,50 +1,42 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export interface LogoProps {
-  /** Size of the logo icon in pixels or predefined size string */
-  size?: "sm" | "md" | "lg" | "xl" | number;
-  /** Whether to show the "certiverify" wordmark next to the icon */
-  showWordmark?: boolean;
-  /** If true or variant="dark", wordmark's 'certi' text is white for dark backgrounds */
-  isDark?: boolean;
-  /** Explicit theme variant ("light" | "dark") */
-  theme?: "light" | "dark";
-  /** Optional link destination (e.g. "/" or "/dashboard") */
-  href?: string;
-  /** Additional CSS class names */
   className?: string;
-  /** Accessible label for screen readers */
-  ariaLabel?: string;
-  /** Click event handler */
+  size?: "sm" | "md" | "lg" | "xl";
+  showText?: boolean;
+  showWordmark?: boolean;
+  isDark?: boolean;
+  href?: string;
   onClick?: () => void;
+  ariaLabel?: string;
 }
 
-export const LogoIcon: React.FC<{ sizePx: number; className?: string }> = ({ sizePx, className = "" }) => (
+export const MonogramIcon: React.FC<{ sizePx?: number; className?: string }> = ({
+  sizePx = 32,
+  className,
+}) => (
   <svg
-    xmlns="http://www.w3.org/2000/svg"
     width={sizePx}
     height={sizePx}
-    viewBox="0 0 96 96"
-    role="img"
-    aria-label="CertiVerify Icon"
-    className={`shrink-0 ${className}`}
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={cn("shrink-0", className)}
+    aria-label="CertiVerify Monogram"
   >
-    <rect width="96" height="96" rx="22" fill="#4F46E5" />
+    <rect width="32" height="32" rx="8" fill="#4F46E5" />
     <path
-      d="M69 33 A26 26 0 1 0 69 63"
-      fill="none"
+      d="M21 11.5C19.7 10.3 17.8 9.5 15.5 9.5C11.9 9.5 9 12.4 9 16C9 19.6 11.9 22.5 15.5 22.5C17.8 22.5 19.7 21.7 21 20.5"
       stroke="#FFFFFF"
-      strokeWidth="9"
+      strokeWidth="2.5"
       strokeLinecap="round"
     />
     <path
-      d="M41 50 L50 59 L72 35"
-      fill="none"
-      stroke="#10213A"
-      strokeWidth="8"
+      d="M14 16L16.5 18.5L22 13"
+      stroke="#FFFFFF"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -52,65 +44,47 @@ export const LogoIcon: React.FC<{ sizePx: number; className?: string }> = ({ siz
 );
 
 export const Logo: React.FC<LogoProps> = ({
+  className,
   size = "md",
+  showText = true,
   showWordmark = true,
-  isDark = false,
-  theme,
   href,
-  className = "",
-  ariaLabel = "CertiVerify Home",
   onClick,
+  ariaLabel = "CertiVerify AI",
 }) => {
-  // Determine pixel size & font size classes
-  let iconSizePx = 36;
-  let fontClasses = "text-xl";
+  const sizeMap = {
+    sm: { px: 24, text: "text-sm", sub: "text-[10px]" },
+    md: { px: 32, text: "text-base", sub: "text-xs" },
+    lg: { px: 40, text: "text-xl", sub: "text-xs" },
+    xl: { px: 48, text: "text-2xl", sub: "text-sm" },
+  };
 
-  if (typeof size === "number") {
-    iconSizePx = size;
-    fontClasses = size >= 56 ? "text-3xl" : size >= 44 ? "text-2xl" : size >= 32 ? "text-xl" : "text-base";
-  } else {
-    switch (size) {
-      case "sm":
-        iconSizePx = 28;
-        fontClasses = "text-lg";
-        break;
-      case "md":
-        iconSizePx = 36;
-        fontClasses = "text-xl";
-        break;
-      case "lg":
-        iconSizePx = 48;
-        fontClasses = "text-2xl";
-        break;
-      case "xl":
-        iconSizePx = 64;
-        fontClasses = "text-4xl";
-        break;
-    }
-  }
-
-  const useDarkText = theme === "dark" || isDark;
-  const certiColorClass = useDarkText ? "text-white" : "text-[#10213A]";
+  const current = sizeMap[size];
+  const shouldShowText = showText && showWordmark;
 
   const content = (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`} onClick={onClick}>
-      <LogoIcon sizePx={iconSizePx} />
-
-      {showWordmark && (
-        <span
-          className={`font-sora font-semibold tracking-[-0.03em] leading-none ${fontClasses}`}
-          style={{ fontFamily: "var(--font-sora), Sora, sans-serif" }}
-        >
-          <span className={certiColorClass}>certi</span>
-          <span className="text-[#4F46E5]">verify</span>
-        </span>
+    <div
+      onClick={onClick}
+      className={cn("inline-flex items-center gap-2.5 select-none", className)}
+      aria-label={ariaLabel}
+    >
+      <MonogramIcon sizePx={current.px} />
+      {shouldShowText && (
+        <div className="flex flex-col leading-none">
+          <span className={cn("font-bold tracking-tight text-slate-900 font-sans", current.text)}>
+            CertiVerify <span className="text-indigo-600">AI</span>
+          </span>
+          <span className={cn("text-slate-500 font-medium tracking-normal mt-0.5", current.sub)}>
+            Trust & Provenance
+          </span>
+        </div>
       )}
     </div>
   );
 
   if (href) {
     return (
-      <Link href={href} aria-label={ariaLabel} className="inline-flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg">
+      <Link href={href} className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 rounded-lg">
         {content}
       </Link>
     );

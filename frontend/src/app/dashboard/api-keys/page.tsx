@@ -41,6 +41,7 @@ export default function ApiKeysPage() {
   const [copiedRawKey, setCopiedRawKey] = useState(false);
 
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   const fetchKeys = useCallback(async () => {
     if (!getAccessToken()) {

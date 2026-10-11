@@ -28,8 +28,8 @@ export const Tabs: React.FC<TabsProps> = ({
     <div
       className={cn(
         variant === "pill"
-          ? "inline-flex p-1 bg-surface-subtle/80 backdrop-blur-md rounded-xl border border-white/10"
-          : "flex border-b border-white/10 space-x-6",
+          ? "inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200/60 gap-1"
+          : "flex border-b border-slate-200 space-x-6",
         className
       )}
       role="tablist"
@@ -44,27 +44,29 @@ export const Tabs: React.FC<TabsProps> = ({
             disabled={tab.disabled}
             onClick={() => !tab.disabled && onChange(tab.id)}
             className={cn(
-              "flex items-center gap-2 text-sm font-medium transition-all duration-200 select-none disabled:opacity-40 disabled:cursor-not-allowed",
+              "flex items-center gap-2 text-sm font-medium transition-all duration-150 select-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-1 rounded-md disabled:opacity-40 disabled:cursor-not-allowed",
               variant === "pill" && [
-                "px-3.5 py-1.5 rounded-lg",
+                "px-3.5 py-1.5",
                 isActive
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5",
+                  ? "bg-white text-slate-900 font-semibold shadow-sm"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50",
               ],
               variant === "underline" && [
                 "pb-3 -mb-px border-b-2",
                 isActive
-                  ? "border-blue-500 text-blue-400 font-semibold"
-                  : "border-transparent text-slate-400 hover:text-slate-200 hover:border-white/20",
+                  ? "border-indigo-600 text-indigo-600 font-semibold"
+                  : "border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300",
               ]
             )}
           >
             {tab.icon && <span className="shrink-0">{tab.icon}</span>}
             <span>{tab.label}</span>
-            {tab.badge && <span className="ml-1">{tab.badge}</span>}
+            {tab.badge && <span className="shrink-0">{tab.badge}</span>}
           </button>
         );
       })}
     </div>
   );
 };
+
+export default Tabs;

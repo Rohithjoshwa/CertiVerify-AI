@@ -1,6 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -23,18 +24,27 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = "xl",
   className,
 }) => {
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    },
+    [onClose]
+  );
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleKeyDown);
     } else {
       document.body.style.overflow = "unset";
     }
     return () => {
       document.body.style.overflow = "unset";
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+  }, [isOpen, handleKeyDown]);
 
   const maxWidthStyles = {
     sm: "max-w-sm",
@@ -47,57 +57,71 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-md transition-opacity duration-300"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
-      {/* Dialog Frame */}
-      <div
-        className={cn(
-          "relative w-full glass-elevated rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-10 my-8 transition-all transform duration-300 scale-100",
-          maxWidthStyles[maxWidth],
-          className
-        )}
-        role="dialog"
-        aria-modal="true"
-      >
-        {/* Header */}
-        {(title || description) && (
-          <div className="flex items-start justify-between p-5 border-b border-white/10">
-            <div className="space-y-1 pr-6">
-              {typeof title === "string" ? (
-                <h3 className="text-lg font-semibold text-slate-100 tracking-tight">{title}</h3>
-              ) : (
-                title
-              )}
-              {description && (
-                <p className="text-xs text-slate-400 font-normal leading-relaxed">{description}</p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Close modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+          {/* Dialog Frame */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className={cn(
+              "relative w-full bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden z-10 my-8",
+              maxWidthStyles[maxWidth],
+              className
+            )}
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Header */}
+            {(title || description) && (
+              <div className="flex items-start justify-between p-5 border-b border-slate-100">
+                <div className="space-y-1 pr-6">
+                  {typeof title === "string" ? (
+                    <h3 className="text-lg font-semibold text-slate-900 tracking-tight">{title}</h3>
+                  ) : (
+                    title
+                  )}
+                  {description && (
+                    <p className="text-xs text-slate-500 font-normal leading-relaxed">{description}</p>
+                  )}
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 cursor-pointer"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
 
-        {/* Content Body */}
-        <div className="p-5 max-h-[75vh] overflow-y-auto">{children}</div>
+            {/* Content Body */}
+            <div className="p-5 max-h-[75vh] overflow-y-auto text-slate-700">{children}</div>
 
-        {/* Footer */}
-        {footer && (
-          <div className="flex items-center justify-end gap-3 p-4 bg-black/20 border-t border-white/10">
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
+            {/* Footer */}
+            {footer && (
+              <div className="flex items-center justify-end gap-3 p-4 bg-slate-50 border-t border-slate-100">
+                {footer}
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };
+
+export default Modal;

@@ -1,15 +1,17 @@
 "use client";
-import { Suspense, useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { authApi, setTokens } from "@/lib/api";
 import { AxiosError } from "axios";
-import { CertiVerifyLogo } from "@/components/ui/CertiVerifyLogo";
+import { Logo } from "@/components/ui/Logo";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  // Show a success banner when redirected from registration (dev mode — no OTP needed)
   const justRegistered = params.get("registered") === "1";
 
   const [form, setForm] = useState({ email: "", password: "" });
@@ -39,79 +41,104 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="glass-panel rounded-2xl p-8 w-full max-w-md space-y-4">
-      <div className="flex justify-center pb-2">
-        <CertiVerifyLogo variant="full" size="md" />
+    <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl shadow-xl p-8 space-y-6">
+      <div className="flex flex-col items-center text-center space-y-2">
+        <Logo size="lg" />
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight pt-2">Welcome back</h1>
+        <p className="text-xs text-slate-500 max-w-xs">
+          Sign in to access document verification, forensic auditing, and trust scores.
+        </p>
       </div>
-      <h1 className="text-xl font-bold text-white mb-1 text-center">Welcome back</h1>
-      <p className="text-xs text-gray-400 mb-4 text-center">Log in to verify certificates.</p>
 
       {justRegistered && (
-        <div className="bg-genuine/10 border border-genuine/30 text-genuine text-sm rounded-lg px-3 py-2">
-          ✅ Account created successfully! Log in below.
+        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>Account created successfully! Please sign in.</span>
         </div>
       )}
 
       {unverifiedEmail ? (
-        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm rounded-lg p-3 space-y-2">
-          <p className="font-medium">{error}</p>
+        <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg space-y-2 text-xs">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <span className="font-semibold">{error}</span>
+          </div>
           <Link
             href={`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}
-            className="inline-block text-xs font-semibold text-brand-400 hover:text-brand-300 underline"
+            className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-700 hover:underline pt-1"
           >
-            Click here to verify your email with OTP →
+            Verify your email with OTP <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       ) : error ? (
-        <div className="bg-fake/10 border border-fake/30 text-fake text-sm rounded-lg px-3 py-2">{error}</div>
+        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
       ) : null}
 
-      <div>
-        <label className="text-sm text-gray-300">Email</label>
-        <input
-          required
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          id="email-input"
+          label="Email address"
           type="email"
+          required
+          autoComplete="email"
+          placeholder="name@organization.com"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="mt-1 w-full rounded-lg bg-surface-panel border border-surface-border px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
-      </div>
-      <div>
-        <div className="flex justify-between">
-          <label className="text-sm text-gray-300">Password</label>
-          <Link href="/forgot-password" className="text-xs text-brand-500 hover:underline">Forgot password?</Link>
+
+        <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <label htmlFor="password-input" className="block text-xs font-semibold text-slate-700 select-none">
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <Input
+            id="password-input"
+            type="password"
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
         </div>
-        <input
-          required
-          type="password"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-          className="mt-1 w-full rounded-lg bg-surface-panel border border-surface-border px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-        />
+
+        <Button type="submit" loading={loading} className="w-full">
+          Sign In
+        </Button>
+      </form>
+
+      <div className="text-center pt-2 border-t border-slate-100">
+        <p className="text-xs text-slate-500">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">
+            Create an account
+          </Link>
+        </p>
       </div>
-
-      <button
-        disabled={loading}
-        className="w-full rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-medium py-2.5 transition"
-      >
-        {loading ? "Logging in..." : "Log In"}
-      </button>
-
-      <p className="text-sm text-gray-400 text-center">
-        Don&apos;t have an account? <Link href="/register" className="text-brand-500 hover:underline">Sign up</Link>
-      </p>
-    </form>
+    </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <Suspense fallback={
-        <div className="glass-panel rounded-2xl p-8 w-full max-w-md flex items-center justify-center text-gray-400">
-          Loading...
-        </div>
-      }>
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6">
+      <Suspense
+        fallback={
+          <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl p-8 flex items-center justify-center text-slate-400">
+            Loading...
+          </div>
+        }
+      >
         <LoginForm />
       </Suspense>
     </main>
