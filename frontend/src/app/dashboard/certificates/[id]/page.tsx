@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, ScanLine, Check, Pencil, Loader2, ArrowLeft, QrCode, Link2, AlertTriangle, CircleCheck, CircleX, CircleHelp, Sparkles, Copy, ImageIcon, Zap, Gauge, Activity, ShieldAlert, ShieldX, ListChecks, FileText, Download, RefreshCw, Layers } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   certificateApi, CertificateResponse, getAccessToken,
   ocrApi, OCRDataResponse, OCRDataUpdate, DocumentValidationResponse,
@@ -173,7 +175,19 @@ export default function CertificateDetailPage() {
       router.push("/login");
       return;
     }
-    certificateApi.get(id).then((res) => setCert(res.data)).catch(() => setError("Certificate not found."));
+    certificateApi
+      .get(id)
+      .then((res) => setCert(res.data))
+      .catch((err: unknown) => {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 403) {
+          setError("Access Denied (403): You do not have permission to view this certificate record.");
+        } else if (status === 404) {
+          setError("Certificate Not Found (404): The requested credential does not exist or has been removed.");
+        } else {
+          setError("Failed to load certificate. Please verify your connection and try again.");
+        }
+      });
     loadOcrData();
     loadPipeline();
     loadValidation();
@@ -479,44 +493,90 @@ async function handleDownloadReport() {
   }
 }
 
-return (
-  <main className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto space-y-6">
-    {/* ── Top Forensic Cockpit & Pipeline Header ── */}
-    <ForensicCockpitHeader
-      cert={cert}
-      pipeline={pipeline}
-      prediction={prediction}
-      report={report}
-      activeTab={activeTab}
-      onTabChange={(tab) => setActiveTab(tab)}
-      onRefresh={() => {
-        certificateApi.get(id).then((res) => setCert(res.data)).catch(() => { });
-        loadOcrData();
-        loadPipeline();
-        loadValidation();
-      }}
-      onRunOcr={handleRunOcr}
-      onVerifyAll={handleVerifyAll}
-      onGenerateReport={handleGenerateReport}
-      onDownloadReport={handleDownloadReport}
-      loadingPipeline={loadingPipeline}
-      runningOcr={running}
-      verifyingAll={verifyingAll}
-      generatingReport={generatingReport}
-      downloadingReport={downloadingReport}
-    />
-
-    {error && (
-      <div className="bg-fake/10 border border-fake/30 text-fake text-sm rounded-xl px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={16} className="shrink-0" />
-          <span>{error}</span>
+  if (!cert && error) {
+    return (
+      <main className="min-h-screen px-4 sm:px-6 lg:px-8 py-16 max-w-2xl mx-auto space-y-6">
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center space-y-4 shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-100">
+            <ShieldAlert size={26} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Unable to Load Certificate</h2>
+            <p className="text-sm text-slate-500 mt-1 leading-relaxed">{error}</p>
+          </div>
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <Link href="/dashboard">
+              <Button variant="secondary" size="sm">Back to Dashboard</Button>
+            </Link>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setError(null);
+                refreshAllData();
+              }}
+            >
+              Retry
+            </Button>
+          </div>
         </div>
-        <button onClick={() => setError(null)} className="text-xs text-fake hover:underline">
-          Dismiss
-        </button>
-      </div>
-    )}
+      </main>
+    );
+  }
+
+  if (!cert) {
+    return (
+      <main className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto space-y-6">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-8 bg-slate-200 rounded-lg w-1/3" />
+          <div className="h-24 bg-slate-100 rounded-xl border border-slate-200" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7 h-96 bg-slate-100 rounded-xl border border-slate-200" />
+            <div className="lg:col-span-5 h-96 bg-slate-100 rounded-xl border border-slate-200" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto space-y-6">
+      {/* ── Top Forensic Cockpit & Pipeline Header ── */}
+      <ForensicCockpitHeader
+        cert={cert}
+        pipeline={pipeline}
+        prediction={prediction}
+        report={report}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        onRefresh={() => {
+          certificateApi.get(id).then((res) => setCert(res.data)).catch(() => { });
+          loadOcrData();
+          loadPipeline();
+          loadValidation();
+        }}
+        onRunOcr={handleRunOcr}
+        onVerifyAll={handleVerifyAll}
+        onGenerateReport={handleGenerateReport}
+        onDownloadReport={handleDownloadReport}
+        loadingPipeline={loadingPipeline}
+        runningOcr={running}
+        verifyingAll={verifyingAll}
+        generatingReport={generatingReport}
+        downloadingReport={downloadingReport}
+      />
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="shrink-0 text-red-600" />
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError(null)} className="text-xs text-red-700 hover:text-red-900 font-medium">
+            Dismiss
+          </button>
+        </div>
+      )}
 
     {/* ── TAB 1: FIGMA SCREEN 3 - OCR & VERIFICATION PIPELINE ── */}
     {activeTab === "pipeline" && (

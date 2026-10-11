@@ -164,7 +164,7 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
                 VERIFICATION RESULT
               </span>
               <Badge variant={theme.variant} size="md">
-                ✓ {theme.label}
+                {verdict === "genuine" ? "✓ " : verdict === "fake" ? "✕ " : "⚠ "}{theme.label}
               </Badge>
             </div>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -201,7 +201,7 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
       <div className={`p-4 rounded-lg ${theme.bannerBg} border ${theme.border} space-y-2`}>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <CheckCircle2 size={14} className={theme.badgeText} />
+            <VerdictIcon size={14} className={theme.badgeText} />
             {theme.statusText}
           </span>
           {prediction.recommended_action && (
