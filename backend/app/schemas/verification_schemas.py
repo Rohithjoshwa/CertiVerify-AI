@@ -38,6 +38,7 @@ class VerificationResultResponse(BaseModel):
     is_duplicate: bool = False
     duplicate_of_certificate_id: Optional[str] = None
     duplicate_match_reason: Optional[str] = None
+    duplicate_status: Optional[str] = None
     duplicate_detail: Optional[dict] = None   # full structured duplicate result (Priority 7)
 
     # Cross-Validation (QR data vs OCR fields vs DB record)

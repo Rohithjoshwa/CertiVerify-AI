@@ -32,6 +32,9 @@ class TrustScoreInputs:
     qr_valid: bool | None = None
     tampering_score: float | None = None                # 0-100, higher = worse
     is_duplicate: bool | None = None
+    duplicate_status: str | None = None
+    duplicate_same_owner: bool | None = None
+    duplicate_type: str | None = None
     fraud_probability: float | None = None              # 0-1
 
     # ── New signals ─────────────────────────────────────────────────────────
@@ -178,12 +181,50 @@ def compute_trust_score(inputs: TrustScoreInputs) -> TrustScoreResult:
 
     # ── 8. Duplicate detection ───────────────────────────────────────────────
     if inputs.is_duplicate is not None:
-        dup_trust = 0.0 if inputs.is_duplicate else 100.0
+        dup_status = (inputs.duplicate_status or "").lower()
+        same_owner = bool(inputs.duplicate_same_owner)
+        is_own = dup_status == "own_reupload" or (
+            same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+            and (inputs.duplicate_type == "EXACT_FILE_DUPLICATE" or not inputs.duplicate_type)
+        )
+        is_altered = (
+            "altered" in dup_status
+            or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+            or (inputs.duplicate_type or "").upper() == "ALTERED_REUPLOAD"
+        )
+
+        if not inputs.is_duplicate:
+            dup_trust = 100.0
+            evidence["duplicate"] = {
+                "status": "NOT_FOUND",
+                "display_status": "PASS",
+                "label": "No duplicate record found",
+            }
+        elif is_own:
+            # Re-upload of own file: informational only, no penalty
+            dup_trust = 100.0
+            evidence["duplicate"] = {
+                "status": "OWN_REUPLOAD",
+                "display_status": "PASS",
+                "label": "You already uploaded this exact file",
+            }
+        elif is_altered:
+            # Altered re-upload: moderate signal
+            dup_trust = 50.0
+            evidence["duplicate"] = {
+                "status": "ALTERED_REUPLOAD",
+                "display_status": "WARN",
+                "label": "Suspicious: altered re-upload with different file content",
+            }
+        else:
+            # Different owner / org duplicate -> strong fraud signal
+            dup_trust = 0.0
+            evidence["duplicate"] = {
+                "status": "DUPLICATE",
+                "display_status": "FAIL",
+                "label": "Duplicate certificate detected from another account",
+            }
         trust_values["duplicate"] = dup_trust
-        evidence["duplicate"] = {
-            "status": "DUPLICATE" if inputs.is_duplicate else "NOT_FOUND",
-            "display_status": "FAIL" if inputs.is_duplicate else "PASS",
-        }
     else:
         evidence["duplicate"] = {"status": "NOT_CHECKED", "display_status": "UNAVAILABLE"}
 
@@ -214,7 +255,24 @@ def compute_trust_score(inputs: TrustScoreInputs) -> TrustScoreResult:
 
     # ── Duplicate hard ceiling ────────────────────────────────────────────────
     if inputs.is_duplicate:
-        score = min(score, 15.0)
+        dup_status = (inputs.duplicate_status or "").lower()
+        same_owner = bool(inputs.duplicate_same_owner)
+        is_own = dup_status == "own_reupload" or (
+            same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+            and (inputs.duplicate_type == "EXACT_FILE_DUPLICATE" or not inputs.duplicate_type)
+        )
+        is_altered = (
+            "altered" in dup_status
+            or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+            or (inputs.duplicate_type or "").upper() == "ALTERED_REUPLOAD"
+        )
+
+        if is_own:
+            pass  # Own re-upload is informational only: NO penalty, not fraud evidence
+        elif is_altered:
+            score = min(score, 65.0)  # Moderate ceiling (suspicious range, not fake)
+        else:
+            score = min(score, 15.0)  # Strong fraud evidence: force fake (< 15)
 
     # ── Critical evidence hard ceilings ──────────────────────────────────────
     # These mirror the fraud_analysis hard floors: a blockchain mismatch or

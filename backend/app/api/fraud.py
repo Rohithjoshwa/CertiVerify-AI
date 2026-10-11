@@ -88,6 +88,7 @@ async def run_fraud_analysis(
     if verification_row and getattr(verification_row, "duplicate_detail", None):
         stored_dup_detail = verification_row.duplicate_detail or {}
     dup_type = stored_dup_detail.get("duplicate_type") or None
+    dup_status = stored_dup_detail.get("duplicate_status") or None
     dup_same_owner = stored_dup_detail.get("same_owner") if stored_dup_detail else None
 
     metadata_flags = check_metadata(file_bytes, cert.file_type)
@@ -114,6 +115,7 @@ async def run_fraud_analysis(
         seal_present=ocr_row.has_seal if ocr_row else None,
         # Priority 7 — duplicate type context
         duplicate_type=dup_type,
+        duplicate_status=dup_status,
         duplicate_same_owner=dup_same_owner,
     )
 

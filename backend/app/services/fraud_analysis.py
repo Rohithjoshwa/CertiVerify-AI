@@ -48,6 +48,7 @@ class FraudFactorInputs:
     signature_present: bool | None = None               # from OCR has_signature
     seal_present: bool | None = None                    # from OCR has_seal
     duplicate_type: str | None = None                   # Priority 7: CERTIFICATE_CONFLICT | DUPLICATE_UPLOAD | etc.
+    duplicate_status: str | None = None                 # own_reupload | suspicious: altered re-upload | ...
     duplicate_same_owner: bool | None = None            # True when re-upload by same user
     tampering_risk_level: str | None = None             # LOW | MINOR_ANOMALIES | MODERATE_RISK | HIGH_RISK | VERY_HIGH_RISK
 
@@ -149,22 +150,38 @@ def compute_fraud_analysis(inputs: FraudFactorInputs) -> FraudAnalysisResult:
     #   NO_DUPLICATE / None    → zero risk
     if inputs.is_duplicate is not None:
         dup_type = (inputs.duplicate_type or "").upper()
+        dup_status = (inputs.duplicate_status or "").lower()
         same_owner = bool(inputs.duplicate_same_owner)
-        if dup_type == "CERTIFICATE_CONFLICT":
+        is_own = dup_status == "own_reupload" or (
+            same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+            and (dup_type in ("EXACT_FILE_DUPLICATE", "DUPLICATE_UPLOAD") or not dup_type)
+        )
+        is_altered = (
+            "altered" in dup_status
+            or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+            or dup_type == "ALTERED_REUPLOAD"
+        )
+
+        if not inputs.is_duplicate:
+            risks["duplicate"] = 0.0
+        elif is_own:
+            # Informational only: no penalty, not fraud evidence
+            risks["duplicate"] = 0.0
+        elif is_altered:
+            # Moderate signal
+            risks["duplicate"] = 0.40
+        elif dup_type == "CERTIFICATE_CONFLICT":
             risks["duplicate"] = 1.0   # Strong fraud signal — always max risk
         elif dup_type in ("EXACT_FILE_DUPLICATE", "DUPLICATE_CERTIFICATE"):
-            risks["duplicate"] = 0.1 if same_owner else 0.70
+            risks["duplicate"] = 0.70
         elif dup_type == "QR_DUPLICATE":
-            risks["duplicate"] = 0.1 if same_owner else 0.65
+            risks["duplicate"] = 0.65
         elif dup_type == "POSSIBLE_DUPLICATE":
             risks["duplicate"] = 0.40
         elif dup_type == "DUPLICATE_UPLOAD":
-            risks["duplicate"] = 0.1 if same_owner else 0.50
-        elif inputs.is_duplicate:
-            # Legacy callers that only set is_duplicate without a type
-            risks["duplicate"] = 0.70
+            risks["duplicate"] = 0.0 if same_owner else 0.50
         else:
-            risks["duplicate"] = 0.0
+            risks["duplicate"] = 0.0 if same_owner else 0.70
 
     # ── 9. Metadata integrity ────────────────────────────────────────────────
     if inputs.metadata_flags_present is not None:
@@ -193,15 +210,27 @@ def compute_fraud_analysis(inputs: FraudFactorInputs) -> FraudAnalysisResult:
     # Same-owner re-uploads are benign and must NOT trigger the floor.
     if inputs.is_duplicate:
         dup_type = (inputs.duplicate_type or "").upper()
+        dup_status = (inputs.duplicate_status or "").lower()
         same_owner = bool(inputs.duplicate_same_owner)
-        is_suspicious_dup = (
-            dup_type == "CERTIFICATE_CONFLICT"
-            or (dup_type in ("EXACT_FILE_DUPLICATE", "DUPLICATE_CERTIFICATE", "QR_DUPLICATE") and not same_owner)
-            or (not dup_type and not same_owner)
+        is_own = dup_status == "own_reupload" or (
+            same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+            and (dup_type in ("EXACT_FILE_DUPLICATE", "DUPLICATE_UPLOAD") or not dup_type)
         )
-        if is_suspicious_dup:
-            probability = max(probability, _DUPLICATE_FLOOR)
-            overrides.append(f"duplicate_floor_{_DUPLICATE_FLOOR}")
+        is_altered = (
+            "altered" in dup_status
+            or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+            or dup_type == "ALTERED_REUPLOAD"
+        )
+
+        if not is_own and not is_altered:
+            is_suspicious_dup = (
+                dup_type == "CERTIFICATE_CONFLICT"
+                or (not same_owner and dup_type in ("EXACT_FILE_DUPLICATE", "DUPLICATE_CERTIFICATE", "QR_DUPLICATE", "POSSIBLE_DUPLICATE"))
+                or (not same_owner)
+            )
+            if is_suspicious_dup:
+                probability = max(probability, _DUPLICATE_FLOOR)
+                overrides.append(f"duplicate_floor_{_DUPLICATE_FLOOR}")
 
     if inputs.blockchain_status == "mismatch":
         probability = max(probability, _BLOCKCHAIN_MISMATCH_FLOOR)

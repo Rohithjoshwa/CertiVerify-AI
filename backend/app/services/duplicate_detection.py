@@ -53,14 +53,17 @@ logger = logging.getLogger("certiverify.duplicate")
 # ---------------------------------------------------------------------------
 # Duplicate category constants (PART J)
 # ---------------------------------------------------------------------------
-NO_DUPLICATE          = "NO_DUPLICATE"
-EXACT_FILE_DUPLICATE  = "EXACT_FILE_DUPLICATE"
-DUPLICATE_UPLOAD      = "DUPLICATE_UPLOAD"
-DUPLICATE_CERTIFICATE = "DUPLICATE_CERTIFICATE"
-POSSIBLE_DUPLICATE    = "POSSIBLE_DUPLICATE"
-CERTIFICATE_CONFLICT  = "CERTIFICATE_CONFLICT"
-QR_DUPLICATE          = "QR_DUPLICATE"
-BLOCKCHAIN_DUPLICATE  = "BLOCKCHAIN_DUPLICATE"
+NO_DUPLICATE                = "NO_DUPLICATE"
+EXACT_FILE_DUPLICATE        = "EXACT_FILE_DUPLICATE"
+DUPLICATE_UPLOAD            = "DUPLICATE_UPLOAD"
+DUPLICATE_CERTIFICATE       = "DUPLICATE_CERTIFICATE"
+POSSIBLE_DUPLICATE          = "POSSIBLE_DUPLICATE"
+CERTIFICATE_CONFLICT        = "CERTIFICATE_CONFLICT"
+QR_DUPLICATE                = "QR_DUPLICATE"
+BLOCKCHAIN_DUPLICATE        = "BLOCKCHAIN_DUPLICATE"
+OWN_REUPLOAD                = "own_reupload"
+SUSPICIOUS_ALTERED_REUPLOAD = "suspicious: altered re-upload"
+
 
 # Fields used for identity comparison (PART G/H)
 _IDENTITY_FIELDS = [
@@ -158,17 +161,30 @@ async def detect_duplicates(
             Certificate.id != cert.id,
         )
     )
-    other_cert = hash_match.scalars().first()
-    if other_cert:
-        same_owner = other_cert.owner_id == cert.owner_id
-        reason = _describe(other_cert, cert, "This exact file (identical SHA-256 hash) has already been uploaded")
+    matching_certs = hash_match.scalars().all()
+    if matching_certs:
+        same_owner_cert = next(
+            (c for c in matching_certs if _is_same_owner_or_org(cert, c)),
+            None
+        )
+        if same_owner_cert:
+            other_cert = same_owner_cert
+            same_owner = True
+            status = OWN_REUPLOAD
+            reason = "You already uploaded this exact file"
+        else:
+            other_cert = matching_certs[0]
+            same_owner = False
+            status = EXACT_FILE_DUPLICATE
+            reason = "This exact file was previously uploaded by another account or organization. Strong fraud signal."
+
         _log(cert.id, EXACT_FILE_DUPLICATE, other_cert.id, 100.0, t_start)
         return DuplicateCheckResult(
             is_duplicate=True,
             duplicate_of_certificate_id=other_cert.id,
             match_reason=reason[:255],
             duplicate_type=EXACT_FILE_DUPLICATE,
-            duplicate_status=DUPLICATE_UPLOAD if same_owner else EXACT_FILE_DUPLICATE,
+            duplicate_status=status,
             confidence=100.0,
             matched_fields=["sha256_hash"],
             file_hash_match=True,
@@ -185,31 +201,53 @@ async def detect_duplicates(
 
     # ── PART C: Certificate number ───────────────────────────────────────────
     if ocr_row.certificate_number:
-        other_ocr = await _find_by_ocr_field(
+        matching_ocrs = await _find_all_by_ocr_field(
             db, OCRData.certificate_number, ocr_row.certificate_number, cert.id
         )
-        if other_ocr:
-            other_cert = await _load_certificate(db, other_ocr.certificate_id)
-            same_owner = (other_cert.owner_id == cert.owner_id) if other_cert else False
-            other_fields = _extract_ocr_fields(other_ocr)
-            matched, conflicting = _compare_identity_fields(ocr_fields, other_fields)
-            conflict_detected = bool(set(conflicting) & _CONFLICT_SENSITIVE_FIELDS)
+        if matching_ocrs:
+            different_owner_match = None
+            same_owner_match = None
+            for o in matching_ocrs:
+                c = await _load_certificate(db, o.certificate_id)
+                if not _is_same_owner_or_org(cert, c):
+                    different_owner_match = (o, c)
+                    break
+                elif same_owner_match is None:
+                    same_owner_match = (o, c)
 
-            if conflict_detected:
-                reason = (
-                    f"Certificate number '{ocr_row.certificate_number}' matches an existing "
-                    f"certificate but identity fields conflict: {', '.join(conflicting[:3])}"
-                )
-                confidence = max(90.0, 95.0 - len(conflicting) * 1.5)
-                dup_type, dup_status = CERTIFICATE_CONFLICT, CERTIFICATE_CONFLICT
+            if different_owner_match:
+                other_ocr, other_cert = different_owner_match
+                same_owner = False
+                other_fields = _extract_ocr_fields(other_ocr)
+                matched, conflicting = _compare_identity_fields(ocr_fields, other_fields)
+                conflict_detected = bool(set(conflicting) & _CONFLICT_SENSITIVE_FIELDS)
+                if conflict_detected:
+                    reason = (
+                        f"Certificate number '{ocr_row.certificate_number}' matches an existing "
+                        f"certificate from a different account or organization and identity fields conflict: {', '.join(conflicting[:3])}. Strong fraud signal."
+                    )
+                    confidence = max(90.0, 95.0 - len(conflicting) * 1.5)
+                    dup_type, dup_status = CERTIFICATE_CONFLICT, CERTIFICATE_CONFLICT
+                else:
+                    reason = (
+                        f"Certificate number '{ocr_row.certificate_number}' is already registered "
+                        f"by a different account or organization. Strong fraud signal."
+                    )
+                    confidence = 94.0
+                    dup_type = DUPLICATE_CERTIFICATE
+                    dup_status = DUPLICATE_CERTIFICATE
             else:
-                reason = _describe(
-                    other_cert, cert,
-                    f"Certificate number '{ocr_row.certificate_number}' is already registered"
+                other_ocr, other_cert = same_owner_match
+                same_owner = True
+                other_fields = _extract_ocr_fields(other_ocr)
+                matched, conflicting = _compare_identity_fields(ocr_fields, other_fields)
+                reason = (
+                    f"Suspicious: altered re-upload — same certificate number '{ocr_row.certificate_number}' "
+                    f"as your previous upload, but different file content"
                 )
-                confidence = 97.0 if same_owner else 94.0
-                dup_type = DUPLICATE_CERTIFICATE
-                dup_status = DUPLICATE_UPLOAD if same_owner else DUPLICATE_CERTIFICATE
+                confidence = 85.0
+                dup_type = "ALTERED_REUPLOAD"
+                dup_status = SUSPICIOUS_ALTERED_REUPLOAD
 
             _log(cert.id, dup_type, other_ocr.certificate_id, confidence, t_start)
             return DuplicateCheckResult(
@@ -232,24 +270,51 @@ async def detect_duplicates(
     ]:
         if not val:
             continue
-        other_ocr = await _find_by_ocr_field(db, col, val, cert.id)
-        if other_ocr:
-            other_cert = await _load_certificate(db, other_ocr.certificate_id)
-            same_owner = (other_cert.owner_id == cert.owner_id) if other_cert else False
-            other_fields = _extract_ocr_fields(other_ocr)
-            matched, conflicting = _compare_identity_fields(ocr_fields, other_fields)
-            reason = _describe(
-                other_cert, cert,
-                f"{fname.replace('_', ' ').title()} '{val}' is already registered on a different file"
-            )
-            confidence = 88.0 if same_owner else 85.0
-            _log(cert.id, DUPLICATE_CERTIFICATE, other_ocr.certificate_id, confidence, t_start)
+        matching_ocrs = await _find_all_by_ocr_field(db, col, val, cert.id)
+        if matching_ocrs:
+            different_owner_match = None
+            same_owner_match = None
+            for o in matching_ocrs:
+                c = await _load_certificate(db, o.certificate_id)
+                if not _is_same_owner_or_org(cert, c):
+                    different_owner_match = (o, c)
+                    break
+                elif same_owner_match is None:
+                    same_owner_match = (o, c)
+
+            fname_title = fname.replace('_', ' ').title()
+            if different_owner_match:
+                other_ocr, other_cert = different_owner_match
+                same_owner = False
+                other_fields = _extract_ocr_fields(other_ocr)
+                matched, conflicting = _compare_identity_fields(ocr_fields, other_fields)
+                reason = (
+                    f"{fname_title} '{val}' is already registered on a different file by another account or organization. "
+                    f"Strong fraud signal."
+                )
+                confidence = 88.0
+                dup_type = DUPLICATE_CERTIFICATE
+                dup_status = DUPLICATE_CERTIFICATE
+            else:
+                other_ocr, other_cert = same_owner_match
+                same_owner = True
+                other_fields = _extract_ocr_fields(other_ocr)
+                matched, conflicting = _compare_identity_fields(ocr_fields, other_fields)
+                reason = (
+                    f"Suspicious: altered re-upload — same {fname_title.lower()} '{val}' "
+                    f"as your previous upload, but different file content"
+                )
+                confidence = 80.0
+                dup_type = "ALTERED_REUPLOAD"
+                dup_status = SUSPICIOUS_ALTERED_REUPLOAD
+
+            _log(cert.id, dup_type, other_ocr.certificate_id, confidence, t_start)
             return DuplicateCheckResult(
                 is_duplicate=True,
                 duplicate_of_certificate_id=other_ocr.certificate_id,
                 match_reason=reason[:255],
-                duplicate_type=DUPLICATE_CERTIFICATE,
-                duplicate_status=DUPLICATE_UPLOAD if same_owner else DUPLICATE_CERTIFICATE,
+                duplicate_type=dup_type,
+                duplicate_status=dup_status,
                 confidence=confidence,
                 matched_fields=matched + [fname],
                 conflicting_fields=conflicting,
@@ -259,21 +324,43 @@ async def detect_duplicates(
 
     # ── PART E: QR payload ───────────────────────────────────────────────────
     if ocr_row.qr_code_data:
-        other_ocr = await _find_by_ocr_field(
+        matching_ocrs = await _find_all_by_ocr_field(
             db, OCRData.qr_code_data, ocr_row.qr_code_data, cert.id
         )
-        if other_ocr:
-            other_cert = await _load_certificate(db, other_ocr.certificate_id)
-            same_owner = (other_cert.owner_id == cert.owner_id) if other_cert else False
-            reason = _describe(other_cert, cert, "This QR code has already been used on a different file")
-            _log(cert.id, QR_DUPLICATE, other_ocr.certificate_id, 99.0, t_start)
+        if matching_ocrs:
+            different_owner_match = None
+            same_owner_match = None
+            for o in matching_ocrs:
+                c = await _load_certificate(db, o.certificate_id)
+                if not _is_same_owner_or_org(cert, c):
+                    different_owner_match = (o, c)
+                    break
+                elif same_owner_match is None:
+                    same_owner_match = (o, c)
+
+            if different_owner_match:
+                other_ocr, other_cert = different_owner_match
+                same_owner = False
+                reason = "This QR code has already been registered on a certificate from a different account or organization. Strong fraud signal."
+                confidence = 99.0
+                dup_type = QR_DUPLICATE
+                dup_status = QR_DUPLICATE
+            else:
+                other_ocr, other_cert = same_owner_match
+                same_owner = True
+                reason = "Suspicious: altered re-upload — identical QR payload reused with different file content"
+                confidence = 85.0
+                dup_type = "ALTERED_REUPLOAD"
+                dup_status = SUSPICIOUS_ALTERED_REUPLOAD
+
+            _log(cert.id, dup_type, other_ocr.certificate_id, confidence, t_start)
             return DuplicateCheckResult(
                 is_duplicate=True,
                 duplicate_of_certificate_id=other_ocr.certificate_id,
                 match_reason=reason[:255],
-                duplicate_type=QR_DUPLICATE,
-                duplicate_status=DUPLICATE_UPLOAD if same_owner else QR_DUPLICATE,
-                confidence=99.0,
+                duplicate_type=dup_type,
+                duplicate_status=dup_status,
+                confidence=confidence,
                 matched_fields=["qr_code_data"],
                 qr_match=True,
                 same_owner=same_owner,
@@ -284,7 +371,7 @@ async def detect_duplicates(
     if fuzzy_result:
         other_ocr, field_sim, matched, conflicting = fuzzy_result
         other_cert = await _load_certificate(db, other_ocr.certificate_id)
-        same_owner = (other_cert.owner_id == cert.owner_id) if other_cert else False
+        same_owner = _is_same_owner_or_org(cert, other_cert)
 
         # ── PART I: Visual similarity (only when fuzzy ≥70%) ─────────────
         visual_sim = 0.0
@@ -297,18 +384,28 @@ async def detect_duplicates(
                 logger.debug("Visual similarity failed (non-fatal): %s", exc)
 
         confidence = min(field_sim + (visual_sim * 0.1 if visual_sim >= _VISUAL_THRESHOLD else 0), 99.0)
-        reason = (
-            f"High field similarity ({field_sim:.0f}%) with certificate "
-            f"{other_ocr.certificate_id[:8]}\u2026 — matched: {', '.join(matched[:3])}"
-        )
-        _log(cert.id, POSSIBLE_DUPLICATE, other_ocr.certificate_id, confidence, t_start,
+        if same_owner:
+            dup_type = "ALTERED_REUPLOAD"
+            dup_status = SUSPICIOUS_ALTERED_REUPLOAD
+            reason = (
+                f"Suspicious: altered re-upload — high similarity ({field_sim:.0f}%) with your previous "
+                f"upload {other_ocr.certificate_id[:8]}…, but different file content"
+            )
+        else:
+            dup_type = POSSIBLE_DUPLICATE
+            dup_status = POSSIBLE_DUPLICATE
+            reason = (
+                f"High field similarity ({field_sim:.0f}%) with certificate from another account or organization "
+                f"{other_ocr.certificate_id[:8]}… — matched: {', '.join(matched[:3])}. Strong fraud signal."
+            )
+        _log(cert.id, dup_type, other_ocr.certificate_id, confidence, t_start,
              field_sim=field_sim, visual_sim=visual_sim)
         return DuplicateCheckResult(
             is_duplicate=True,
             duplicate_of_certificate_id=other_ocr.certificate_id,
             match_reason=reason[:255],
-            duplicate_type=POSSIBLE_DUPLICATE,
-            duplicate_status=DUPLICATE_UPLOAD if same_owner else POSSIBLE_DUPLICATE,
+            duplicate_type=dup_type,
+            duplicate_status=dup_status,
             confidence=confidence,
             matched_fields=matched,
             conflicting_fields=conflicting,
@@ -460,6 +557,15 @@ async def _find_by_ocr_field(
     return result.scalars().first()
 
 
+async def _find_all_by_ocr_field(
+    db: AsyncSession, column, value: str, exclude_certificate_id: str
+) -> list[OCRData]:
+    result = await db.execute(
+        select(OCRData).where(column == value, OCRData.certificate_id != exclude_certificate_id)
+    )
+    return list(result.scalars().all())
+
+
 async def _load_certificate(db: AsyncSession, certificate_id: str) -> Optional[Certificate]:
     result = await db.execute(select(Certificate).where(Certificate.id == certificate_id))
     return result.scalar_one_or_none()
@@ -477,11 +583,25 @@ async def _load_cert_file_bytes(cert: Optional[Certificate]) -> Optional[bytes]:
         return None
 
 
+def _is_same_owner_or_org(cert: Certificate, other_cert: Optional[Certificate]) -> bool:
+    if other_cert is None:
+        return False
+    if cert.owner_id and other_cert.owner_id and cert.owner_id == other_cert.owner_id:
+        return True
+    if (
+        cert.organization_id
+        and other_cert.organization_id
+        and cert.organization_id == other_cert.organization_id
+    ):
+        return True
+    return False
+
+
 def _describe(other_cert: Optional[Certificate], cert: Certificate, base_message: str) -> str:
     if other_cert is None:
         return base_message
-    if other_cert.owner_id != cert.owner_id:
-        return f"{base_message}, uploaded by a different account. This is a strong fraud signal."
+    if not _is_same_owner_or_org(cert, other_cert):
+        return f"{base_message}, uploaded by a different account or organization. This is a strong fraud signal."
     return f"{base_message} (previously uploaded by you)."
 
 

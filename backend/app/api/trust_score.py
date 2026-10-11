@@ -66,6 +66,11 @@ async def run_trust_score(
     image = load_image_as_array(file_bytes, cert.file_type)
     image_quality_score = compute_image_quality_score(image)
 
+    dup_detail = (verification_row.duplicate_detail or {}) if verification_row else {}
+    dup_status = dup_detail.get("duplicate_status")
+    dup_same_owner = dup_detail.get("same_owner")
+    dup_type = dup_detail.get("duplicate_type")
+
     inputs = TrustScoreInputs(
         ocr_accuracy=ocr_row.ocr_accuracy if ocr_row else None,
         image_quality_score=image_quality_score,
@@ -75,6 +80,9 @@ async def run_trust_score(
         qr_valid=verification_row.qr_valid if verification_row else None,
         tampering_score=verification_row.tampering_score if verification_row else None,
         is_duplicate=verification_row.is_duplicate if verification_row else None,
+        duplicate_status=dup_status,
+        duplicate_same_owner=dup_same_owner,
+        duplicate_type=dup_type,
         fraud_probability=fraud_row.fraud_probability if fraud_row else None,
         # New signals
         doc_classification_confidence=(

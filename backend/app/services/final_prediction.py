@@ -42,6 +42,10 @@ class PredictionInputs:
     comparison_consistency_pct: float | None = None
     fraud_probability: float | None = None              # 0-1
     ocr_accuracy: float | None = None                  # 0-1
+    duplicate_status: str | None = None
+    duplicate_same_owner: bool | None = None
+    duplicate_type: str | None = None
+    duplicate_match_reason: str | None = None
     # New structured evidence from trust score engine
     evidence_breakdown: dict | None = None              # from TrustScoreResult.evidence_breakdown
     # New signals
@@ -83,9 +87,24 @@ def predict(inputs: PredictionInputs) -> PredictionResult:
     )
 
     # ── Duplicate hard override ───────────────────────────────────────────
-    if inputs.is_duplicate:
+    dup_status = (inputs.duplicate_status or "").lower()
+    same_owner = bool(inputs.duplicate_same_owner)
+    is_own = dup_status == "own_reupload" or (
+        same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+        and (inputs.duplicate_type == "EXACT_FILE_DUPLICATE" or not inputs.duplicate_type)
+    )
+    is_altered = (
+        "altered" in dup_status
+        or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+        or (inputs.duplicate_type or "").upper() == "ALTERED_REUPLOAD"
+    )
+
+    if inputs.is_duplicate and not is_own and not is_altered:
         label = "fake"
         confidence = max(confidence, 0.90)
+    elif inputs.is_duplicate and is_altered:
+        if label == "genuine":
+            label = "suspicious"
 
     # ── Build structured evidence breakdown ───────────────────────────────
     evidence = _build_evidence(inputs)
@@ -97,7 +116,7 @@ def predict(inputs: PredictionInputs) -> PredictionResult:
     explanation = _build_explanation(inputs, label, score)
 
     # ── Recommended action ────────────────────────────────────────────────
-    recommended_action = _build_recommended_action(label, inputs.is_duplicate)
+    recommended_action = _build_recommended_action(label, inputs)
 
     return PredictionResult(
         label=label,
@@ -199,12 +218,28 @@ def _build_evidence(inputs: PredictionInputs) -> dict:
         evidence["tampering"] = {"score": None, "status": "NOT_CHECKED"}
 
     # Duplicate
+    dup_status = (inputs.duplicate_status or "").lower()
+    same_owner = bool(inputs.duplicate_same_owner)
+    is_own = dup_status == "own_reupload" or (
+        same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+        and (inputs.duplicate_type == "EXACT_FILE_DUPLICATE" or not inputs.duplicate_type)
+    )
+    is_altered = (
+        "altered" in dup_status
+        or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+        or (inputs.duplicate_type or "").upper() == "ALTERED_REUPLOAD"
+    )
+
     if inputs.is_duplicate is None:
         evidence["duplicate"] = {"status": "NOT_CHECKED"}
-    elif inputs.is_duplicate:
-        evidence["duplicate"] = {"status": "DUPLICATE"}
-    else:
+    elif not inputs.is_duplicate:
         evidence["duplicate"] = {"status": "NOT_FOUND"}
+    elif is_own:
+        evidence["duplicate"] = {"status": "OWN_REUPLOAD", "label": "You already uploaded this exact file"}
+    elif is_altered:
+        evidence["duplicate"] = {"status": "ALTERED_REUPLOAD", "label": "Suspicious: altered re-upload with different file content"}
+    else:
+        evidence["duplicate"] = {"status": "DUPLICATE"}
 
     # Metadata (from trust score engine or default clean)
     evidence["metadata"] = _get("metadata", {"status": "CLEAN"})
@@ -293,12 +328,28 @@ def _build_reasons(
             reasons.append(f"✗ Strong tampering evidence detected (score {ts}/100)")
 
     # Duplicate
+    dup_status = (inputs.duplicate_status or "").lower()
+    same_owner = bool(inputs.duplicate_same_owner)
+    is_own = dup_status == "own_reupload" or (
+        same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+        and (inputs.duplicate_type == "EXACT_FILE_DUPLICATE" or not inputs.duplicate_type)
+    )
+    is_altered = (
+        "altered" in dup_status
+        or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+        or (inputs.duplicate_type or "").upper() == "ALTERED_REUPLOAD"
+    )
+
     if inputs.is_duplicate is None:
         reasons.append("— Duplicate check not run")
-    elif inputs.is_duplicate:
-        reasons.append("✗ Duplicate certificate detected — this document matches an existing record")
-    else:
+    elif not inputs.is_duplicate:
         reasons.append("✓ No duplicate certificate detected")
+    elif is_own:
+        reasons.append("ℹ You already uploaded this exact file")
+    elif is_altered:
+        reasons.append("⚠ Suspicious: altered re-upload with different file content for the same register number")
+    else:
+        reasons.append("✗ Duplicate certificate detected — credentials already registered by another account")
 
     # Critical overrides
     if inputs.critical_overrides:
@@ -349,10 +400,30 @@ def _build_explanation(inputs: PredictionInputs, label: str, score: float) -> st
     parts = [f"This certificate received a Trust Score of {score:.1f}/100."]
 
     if inputs.is_duplicate:
-        parts.append(
-            "It was flagged as a duplicate of another certificate already in the system "
-            "— this alone is treated as strong fraud evidence."
+        dup_status = (inputs.duplicate_status or "").lower()
+        same_owner = bool(inputs.duplicate_same_owner)
+        is_own = dup_status == "own_reupload" or (
+            same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+            and (inputs.duplicate_type == "EXACT_FILE_DUPLICATE" or not inputs.duplicate_type)
         )
+        is_altered = (
+            "altered" in dup_status
+            or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+            or (inputs.duplicate_type or "").upper() == "ALTERED_REUPLOAD"
+        )
+
+        if is_own:
+            parts.append("You already uploaded this exact file (benign re-upload, not treated as fraud).")
+        elif is_altered:
+            parts.append(
+                "This document matches your previous register number but has different file content, "
+                "flagging it as a suspicious altered re-upload."
+            )
+        else:
+            parts.append(
+                "It was flagged as a duplicate of another certificate already in the system "
+                "— this alone is treated as strong fraud evidence."
+            )
 
     if inputs.tampering_score is not None:
         if inputs.tampering_score >= 60:
@@ -391,9 +462,33 @@ def _build_explanation(inputs: PredictionInputs, label: str, score: float) -> st
     return " ".join(parts)
 
 
-def _build_recommended_action(label: str, is_duplicate: bool | None) -> str:
-    if is_duplicate:
+def _build_recommended_action(label: str, inputs: PredictionInputs | bool | None = None) -> str:
+    if isinstance(inputs, bool):
+        is_dup = inputs
+        is_own = False
+        is_altered = False
+    elif inputs is None:
+        is_dup = False
+        is_own = False
+        is_altered = False
+    else:
+        is_dup = bool(inputs.is_duplicate)
+        dup_status = (inputs.duplicate_status or "").lower()
+        same_owner = bool(inputs.duplicate_same_owner)
+        is_own = dup_status == "own_reupload" or (
+            same_owner and not ("altered" in dup_status or dup_status.startswith("suspicious"))
+            and (inputs.duplicate_type == "EXACT_FILE_DUPLICATE" or not inputs.duplicate_type)
+        )
+        is_altered = (
+            "altered" in dup_status
+            or dup_status in ("suspicious: altered re-upload", "suspicious_altered_reupload")
+            or (inputs.duplicate_type or "").upper() == "ALTERED_REUPLOAD"
+        )
+
+    if is_dup and not is_own and not is_altered:
         return "Reject this certificate and flag it for investigation — it duplicates another certificate already on file."
+    if is_dup and is_altered:
+        return "Manual review recommended — same register number was previously uploaded with different file content."
     if label == "genuine":
         return "No further action needed. This certificate passed verification."
     if label == "suspicious":

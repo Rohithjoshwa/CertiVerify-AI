@@ -144,10 +144,20 @@ async def get_verification_result(
     ts_breakdown       = trust_row.breakdown or {}
     evidence_breakdown = ts_breakdown.get("evidence_breakdown")
 
+    dup_detail = (verification_row.duplicate_detail or {}) if verification_row else {}
+    dup_status = dup_detail.get("duplicate_status")
+    dup_same_owner = dup_detail.get("same_owner")
+    dup_type = dup_detail.get("duplicate_type")
+    dup_reason = verification_row.duplicate_match_reason if verification_row else None
+
     inputs = PredictionInputs(
         trust_score=trust_row.score,
         data_completeness=data_completeness,
         is_duplicate=verification_row.is_duplicate if verification_row else None,
+        duplicate_status=dup_status,
+        duplicate_same_owner=dup_same_owner,
+        duplicate_type=dup_type,
+        duplicate_match_reason=dup_reason,
         tampering_score=verification_row.tampering_score if verification_row else None,
         blockchain_status=verification_row.blockchain_status if verification_row else None,
         qr_present=verification_row.qr_present if verification_row else None,

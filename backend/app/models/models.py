@@ -329,6 +329,13 @@ class VerificationResult(Base):
         return self.qr_status
 
     @property
+    def duplicate_status(self) -> str | None:
+        if self.duplicate_detail and isinstance(self.duplicate_detail, dict):
+            return self.duplicate_detail.get("duplicate_status")
+        return "DUPLICATE" if self.is_duplicate else "NO_DUPLICATE"
+
+
+    @property
     def reason(self) -> str | None:
         return self.qr_warning
 
