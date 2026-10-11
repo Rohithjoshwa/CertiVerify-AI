@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { UserProfile } from "./UserProfile";
 import { Logo } from "@/components/ui/Logo";
+import { authApi, getAccessToken } from "@/lib/api";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -120,12 +121,32 @@ function SidebarShell({ isOpen, onClose }: SidebarContentProps) {
 }
 
 function SidebarContent({ isOpen, onClose, pathname = "" }: SidebarContentProps) {
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!getAccessToken()) return;
+    authApi
+      .me()
+      .then((res) => setRole(res.data.role.toLowerCase()))
+      .catch(() => {});
+  }, []);
+
   const isLinkActive = (href: string): boolean => {
     if (href === "/dashboard") {
       return pathname === "/dashboard";
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  const sections = SIDEBAR_SECTIONS.map((section) => {
+    if (section.title === "ENTERPRISE & ADMIN" && role === "student") {
+      return {
+        ...section,
+        items: section.items.filter((item) => item.href === "/dashboard/settings"),
+      };
+    }
+    return section;
+  });
 
   return (
     <>
@@ -166,7 +187,7 @@ function SidebarContent({ isOpen, onClose, pathname = "" }: SidebarContentProps)
 
         {/* Navigation Content */}
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
-          {SIDEBAR_SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div key={section.title}>
               <div className="px-3 pb-1.5 text-[9px] font-mono uppercase tracking-widest text-[#8d90a0] font-bold">
                 {section.title}

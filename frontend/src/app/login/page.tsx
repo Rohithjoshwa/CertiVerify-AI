@@ -14,11 +14,13 @@ function LoginForm() {
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setUnverifiedEmail(null);
     setLoading(true);
     try {
       const { data } = await authApi.login(form);
@@ -26,7 +28,11 @@ function LoginForm() {
       router.push("/dashboard/upload");
     } catch (err) {
       const axErr = err as AxiosError<{ detail?: string }>;
-      setError(axErr.response?.data?.detail || "Login failed. Check your credentials.");
+      const detail = axErr.response?.data?.detail || "Login failed. Check your credentials.";
+      setError(detail);
+      if (axErr.response?.status === 403 && /verif/i.test(detail)) {
+        setUnverifiedEmail(form.email);
+      }
     } finally {
       setLoading(false);
     }
@@ -46,7 +52,19 @@ function LoginForm() {
         </div>
       )}
 
-      {error && <div className="bg-fake/10 border border-fake/30 text-fake text-sm rounded-lg px-3 py-2">{error}</div>}
+      {unverifiedEmail ? (
+        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm rounded-lg p-3 space-y-2">
+          <p className="font-medium">{error}</p>
+          <Link
+            href={`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}
+            className="inline-block text-xs font-semibold text-brand-400 hover:text-brand-300 underline"
+          >
+            Click here to verify your email with OTP →
+          </Link>
+        </div>
+      ) : error ? (
+        <div className="bg-fake/10 border border-fake/30 text-fake text-sm rounded-lg px-3 py-2">{error}</div>
+      ) : null}
 
       <div>
         <label className="text-sm text-gray-300">Email</label>

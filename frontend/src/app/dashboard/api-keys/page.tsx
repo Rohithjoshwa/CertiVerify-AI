@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -40,29 +40,33 @@ export default function ApiKeysPage() {
   const [createdKey, setCreatedKey] = useState<ApiKeyCreateResponse | null>(null);
   const [copiedRawKey, setCopiedRawKey] = useState(false);
 
-  // Revoke Confirmation
-  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
-  const fetchKeys = async () => {
+  const fetchKeys = useCallback(async () => {
     if (!getAccessToken()) {
       router.replace("/login");
       return;
     }
     setLoading(true);
     setError(null);
+    setPermissionDenied(false);
     try {
       const { data } = await apiKeyApi.list();
       setKeys(data);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Failed to load API keys.");
+      if (err?.response?.status === 403) {
+        setPermissionDenied(true);
+      } else {
+        setError(err?.response?.data?.detail || "Failed to load API keys.");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchKeys();
-  }, []);
+  }, [fetchKeys]);
 
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,7 +149,16 @@ export default function ApiKeysPage() {
         </div>
       </div>
 
-      {/* Main Keys Table */}
+      {/* Main Keys Table or Permission Denied */}
+      {permissionDenied ? (
+        <div className="p-10 bg-[#0b1c30] border border-[#ffb4ab]/30 rounded-[8px] text-center space-y-3">
+          <Lock size={36} className="text-[#ffb4ab] mx-auto" />
+          <h2 className="text-base font-bold text-[#d3e4fe]">Access Restricted: Permission Denied</h2>
+          <p className="text-xs text-[#8d90a0] max-w-md mx-auto">
+            Managing API keys requires the <code className="text-[#38bdf8] font-mono">api_key:write</code> permission scope. Please contact your organization owner or administrator.
+          </p>
+        </div>
+      ) : (
       <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] overflow-hidden">
         {loading ? (
           <div className="py-20 text-center space-y-2">
@@ -238,6 +251,7 @@ export default function ApiKeysPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Create Key Modal */}
       {showCreateModal && (

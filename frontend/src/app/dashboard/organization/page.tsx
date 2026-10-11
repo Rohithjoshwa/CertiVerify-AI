@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -33,7 +33,7 @@ export default function OrganizationPage() {
   const [newOrgName, setNewOrgName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const fetchOrgData = async () => {
+  const fetchOrgData = useCallback(async () => {
     if (!getAccessToken()) {
       router.replace("/login");
       return;
@@ -55,11 +55,11 @@ export default function OrganizationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchOrgData();
-  }, []);
+  }, [fetchOrgData]);
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();

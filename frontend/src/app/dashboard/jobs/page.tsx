@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -32,7 +32,7 @@ export default function VerificationJobsPage() {
   const [loading, setLoading] = useState(true);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
 
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     if (!getAccessToken()) {
       router.replace("/login");
       return;
@@ -60,11 +60,11 @@ export default function VerificationJobsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [fetchJobs]);
 
   const handleStartJob = async (certId: string) => {
     setActionJobId(certId);

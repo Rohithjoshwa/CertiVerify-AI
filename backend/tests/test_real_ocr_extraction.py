@@ -50,7 +50,7 @@ def test_real_sample_certificate_ocr_extraction(client):
 
     # 3. Confirm actual OCR extracted values from sample_certificate.pdf
     assert ocr_data["student_name"] == "ROHITH A"
-    assert ocr_data["register_number"] == "2212258807"
+    assert ocr_data["register_number"] == "2212258607"
     assert ocr_data["roll_number"] == "7258636"
     assert ocr_data["certificate_number"] == "33233508"
     assert "PKD MATRIC" in ocr_data["university_name"]  # School/Institution

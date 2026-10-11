@@ -6,11 +6,13 @@ import os
 import pytest
 import pytest_asyncio
 
-# Force SQLite test DB URL before importing app modules
+# Force SQLite test DB URL and development mode before importing app modules
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_certiverify.db"
+os.environ["ENV"] = "development"
 
 from app.core.config import settings
 settings.DATABASE_URL = "sqlite+aiosqlite:///./test_certiverify.db"
+settings.ENV = "development"
 
 from app.db.database import reinit_engine, init_db, engine
 from app.models.models import Base

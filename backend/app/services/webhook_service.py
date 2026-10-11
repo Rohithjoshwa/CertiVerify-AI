@@ -264,6 +264,22 @@ async def execute_delivery_attempt(
         await db.commit()
         return delivery
 
+    # Re-validate DNS resolution at dispatch time to prevent DNS rebinding attacks
+    try:
+        parsed_url = urlparse(endpoint.endpoint_url)
+        host = (parsed_url.hostname or "").lower()
+        if host:
+            addr_info = socket.getaddrinfo(host, None)
+            for _, _, _, _, sockaddr in addr_info:
+                resolved_ip = sockaddr[0]
+                if is_ip_private_or_reserved(resolved_ip) or resolved_ip == "169.254.169.254":
+                    delivery.status = "FAILED"
+                    delivery.response_body = f"Delivery blocked: Target IP {resolved_ip} is internal/reserved."
+                    await db.commit()
+                    return delivery
+    except (socket.gaierror, Exception) as dns_err:
+        logger.warning("Dispatch DNS resolution check for %s: %s", endpoint.endpoint_url, dns_err)
+
     signing_secret = secret or endpoint.secret_hash
     timestamp = int(time.time())
     payload_bytes = json.dumps(delivery.payload, sort_keys=True).encode("utf-8")
@@ -278,7 +294,7 @@ async def execute_delivery_attempt(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
             resp = await client.post(endpoint.endpoint_url, content=payload_bytes, headers=headers)
             
             delivery.response_status = resp.status_code

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -26,7 +26,7 @@ export default function VerificationHistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!getAccessToken()) {
       router.replace("/login");
       return;
@@ -41,11 +41,11 @@ export default function VerificationHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [fetchHistory]);
 
   const filteredItems = historyItems.filter((item) => {
     const q = search.toLowerCase().trim();

@@ -50,9 +50,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await authApi.register(form);
-      // DEV MODE: email verification is skipped — redirect straight to login.
-      // [OTP-RESTORE] Change back to: router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
-      router.push(`/login?registered=1`);
+      router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch (err) {
       const axErr = err as AxiosError<{ detail?: unknown }>;
       setError(extractErrorMessage(axErr.response?.data?.detail));

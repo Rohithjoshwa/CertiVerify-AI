@@ -36,9 +36,42 @@ from app.api import pipeline_status as pipeline_status_router
 from app.api import organizations as organizations_router
 from app.api import audit as audit_router
 from app.api import jobs as jobs_router
+import ipaddress
+
+_TRUSTED_PROXY_NETWORKS = (
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("::1/128"),
+)
 
 
-limiter = Limiter(key_func=get_remote_address, default_limits=[f"{settings.RATE_LIMIT_PER_MINUTE}/minute"])
+def _is_trusted_proxy_host(host: str) -> bool:
+    if host in ("testclient", "localhost"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+        return any(ip in net for net in _TRUSTED_PROXY_NETWORKS)
+    except ValueError:
+        return False
+
+
+def get_trusted_client_ip(request: Request) -> str:
+    """
+    Extract client IP address. Trusts X-Forwarded-For ONLY when the direct
+    request comes from a trusted local or container reverse proxy (Next.js).
+    """
+    direct_host = request.client.host if request.client else "127.0.0.1"
+    if _is_trusted_proxy_host(direct_host):
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+            if client_ip:
+                return client_ip
+    return direct_host
+
+
+limiter = Limiter(key_func=get_trusted_client_ip, default_limits=[f"{settings.RATE_LIMIT_PER_MINUTE}/minute"])
 
 
 app = FastAPI(
@@ -115,6 +148,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def on_startup():
+    settings.validate_production_configuration()
     await init_db()
     import asyncio as _asyncio
 

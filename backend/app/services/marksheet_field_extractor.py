@@ -162,31 +162,28 @@ def _extract_student_name(text: str) -> tuple[Optional[str], float]:
     """
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
-    # Strategy 1: Look for candidate name label, then gather valid uppercase English tokens
+    # Strategy 1: Look for candidate name label, then gather valid uppercase/title English name tokens
     for i, ln in enumerate(lines):
         if re.search(r"name\s*of\s*(?:the\s*)?candidate|candidate\s*name|student\s*name", ln, re.IGNORECASE):
-            name_candidates = []
+            name_candidates: list[str] = []
             for j in range(i + 1, min(i + 12, len(lines))):
                 cand = lines[j].strip().strip("~").strip()
                 if re.search(r"date\s*of\s*birth|permanent|register|dob|certificate|sl\s*no|subject|roll|school", cand, re.IGNORECASE):
                     break
-                if (
-                    re.match(r"^[A-Z][A-Z\s.]{1,}$", cand)
-                    and len(cand) >= 2
-                    and not re.search(r"\b(?:AND|YEAR|ISSUE|OF|MARK|CERTIFICATE|DATE|BIRTH|SCHOOL|EXAM|ROLLNO|HIGHER|SECONDARY|STATE|BOARD)\b", cand)
-                ):
+                is_caps = bool(re.match(r"^[A-Z][A-Z\s.]*$", cand))
+                is_title = bool(re.match(r"^[A-Z][a-z]+(?:\s+[A-Z][a-z]*)*$", cand))
+                is_stop = bool(re.search(r"\b(?:AND|YEAR|ISSUE|OF|MARK|CERTIFICATE|DATE|BIRTH|SCHOOL|EXAM|ROLLNO|HIGHER|SECONDARY|STATE|BOARD)\b", cand, re.IGNORECASE))
+                is_heading = bool(_BOARD_HEADINGS.search(cand))
+                if (is_caps or is_title) and not is_stop and not is_heading:
                     name_candidates.append(cand)
-                elif (
-                    re.match(r"^[A-Z][a-z]+(?:\s+[A-Z][a-z]*)*$", cand)
-                    and not _BOARD_HEADINGS.search(cand)
-                    and not re.search(r"\b(?:And|Year|Issue|Mark|Certificate|Date|Birth|School|Exam)\b", cand)
-                ):
-                    name_candidates.append(cand)
+                elif name_candidates:
+                    # Once name tokens start, non-name tokens terminate sequence
+                    break
             if name_candidates:
-                caps_cand = [c for c in name_candidates if re.match(r"^[A-Z\s.]+$", c) and len(c.strip()) >= 3]
-                chosen = caps_cand[0] if caps_cand else name_candidates[0]
-                logger.info("[Marksheet] Student Name extracted (labeled sequence): %s", chosen)
-                return chosen, 0.95
+                full_name = " ".join(name_candidates).strip()
+                full_name = re.sub(r"\s+", " ", full_name)
+                logger.info("[Marksheet] Student Name extracted (labeled sequence): %s", full_name)
+                return full_name, 0.95
 
     # Strategy 2: Labeled single-line regex
     m = re.search(
@@ -229,8 +226,6 @@ def _extract_register_number(text: str) -> tuple[Optional[str], float]:
     )
     if m:
         num = m.group(1)
-        if num == "2212258607":
-            num = "2212258807"
         logger.info("[Marksheet] Register Number extracted (labeled): %s", num)
         return num, 0.98
 
@@ -241,8 +236,6 @@ def _extract_register_number(text: str) -> tuple[Optional[str], float]:
                 m_d = re.search(r"\b(\d{8,15})\b", lines[j])
                 if m_d:
                     num = m_d.group(1)
-                    if num == "2212258607":
-                        num = "2212258807"
                     logger.info("[Marksheet] Register Number extracted (near label): %s", num)
                     return num, 0.95
 
@@ -251,8 +244,6 @@ def _extract_register_number(text: str) -> tuple[Optional[str], float]:
     for c in candidates:
         if re.match(r"^[12]\d{3}$", c) or re.match(r"^[6-9]\d{9}$", c):
             continue
-        if c == "2212258607":
-            c = "2212258807"
         logger.info("[Marksheet] Register Number extracted (unlabeled): %s", c)
         return c, 0.75
 

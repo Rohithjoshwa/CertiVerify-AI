@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -30,7 +30,7 @@ export default function AuditLogsPage() {
   const [offset, setOffset] = useState(0);
   const [selectedLog, setSelectedLog] = useState<AuditLogResponse | null>(null);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (!getAccessToken()) {
       router.replace("/login");
       return;
@@ -51,11 +51,11 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, offset, router]);
 
   useEffect(() => {
     fetchLogs();
-  }, [offset]);
+  }, [fetchLogs]);
 
   const filteredLogs = logs.filter((log) => {
     const q = search.toLowerCase().trim();

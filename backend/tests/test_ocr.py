@@ -154,3 +154,52 @@ def test_ocr_fusion_repeated_execution_consistency():
         assert text == first_text
         assert acc == first_acc
 
+
+def test_marksheet_student_name_multiline_and_singleline():
+    """Unit test: verifies student name extraction when name is split across multiple lines vs single line."""
+    from app.services.marksheet_field_extractor import extract_marksheet_fields
+
+    # Case A: Split across two lines ("ROHITH" / "A")
+    split_text = """
+    HIGHER SECONDARY EXAMINATION
+    STATEMENT OF MARKS
+    NAME OF THE CANDIDATE
+    ROHITH
+    A
+    PERMANENT REGISTER NUMBER
+    2212258607
+    DATE OF BIRTH
+    24/01/2004
+    """
+    res_split = extract_marksheet_fields(split_text)
+    assert res_split["fields"]["student_name"] == "ROHITH A"
+
+    # Case B: Standard single-line name ("PRIYA SHARMA")
+    single_text = """
+    HIGHER SECONDARY EXAMINATION
+    STATEMENT OF MARKS
+    NAME OF THE CANDIDATE
+    PRIYA SHARMA
+    PERMANENT REGISTER NUMBER
+    2212258607
+    DATE OF BIRTH
+    15/08/2003
+    """
+    res_single = extract_marksheet_fields(single_text)
+    assert res_single["fields"]["student_name"] == "PRIYA SHARMA"
+
+    # Case C: Single-line title-case name ("Johnathan Edwards")
+    title_text = """
+    HIGHER SECONDARY EXAMINATION
+    STATEMENT OF MARKS
+    NAME OF THE CANDIDATE
+    Johnathan Edwards
+    PERMANENT REGISTER NUMBER
+    2212258607
+    DATE OF BIRTH
+    10/10/2002
+    """
+    res_title = extract_marksheet_fields(title_text)
+    assert res_title["fields"]["student_name"] == "Johnathan Edwards"
+
+

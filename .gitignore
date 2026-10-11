@@ -1,8 +1,11 @@
 # Frontend
 frontend/node_modules/
+node_modules/
 frontend/.next/
 frontend/out/
 *.tsbuildinfo
+frontend/.env*
+!frontend/.env.example
 
 # Backend
 backend/venv/
@@ -25,10 +28,13 @@ CertiVerify_Phase6_Enterprise.zip
 .env.*
 !.env.example
 backend/.env
+backend/.env.*
 
 # Databases & local journals
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 

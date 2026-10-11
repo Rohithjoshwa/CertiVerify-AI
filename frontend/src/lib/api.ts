@@ -69,6 +69,15 @@ api.interceptors.response.use(
         isRefreshing = false;
       }
     }
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers?.["retry-after"];
+      const seconds = retryAfter ? parseInt(retryAfter, 10) : 60;
+      const friendlyMessage = `Too many requests. Please try again in ${isNaN(seconds) ? 60 : seconds} seconds.`;
+      if (error.response.data && typeof error.response.data === "object") {
+        (error.response.data as Record<string, any>).detail = friendlyMessage;
+      }
+      error.message = friendlyMessage;
+    }
     return Promise.reject(error);
   }
 );
@@ -685,6 +694,9 @@ export interface CertificatePairComparisonResponse {
   unknown_count: number;
   consistency_percentage: number;
   summary_narrative: string;
+  overall_match_status?: string | null;
+  field_comparisons?: any[] | null;
+  summary?: string | null;
 }
 
 

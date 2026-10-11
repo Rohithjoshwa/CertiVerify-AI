@@ -258,16 +258,13 @@ async def get_pipeline_status(
     tamp_summary = None
     tamp_status = PENDING
     if tamp_done and vr:
-        if vr.tampering_risk_level == "SKIPPED" or vr.blockchain_status == "skipped" or (vr.qr_present is True and vr.qr_valid is True):
+        if vr.tampering_risk_level == "SKIPPED":
             tamp_status = "SKIPPED"
-            tamp_summary = "Skipped — Verified via QR"
+            tamp_summary = "Skipped"
         else:
             risk = (vr.tampering_risk_level or "LOW").replace("_", " ").title()
             tamp_summary = f"{risk} — Score: {vr.tampering_score:.0f}/100"
             tamp_status = COMPLETED
-    elif vr and vr.qr_present is True and vr.qr_valid is True:
-        tamp_status = "SKIPPED"
-        tamp_summary = "Skipped — Verified via QR"
 
     stages.append(PipelineStage(
         stage="tampering",
@@ -412,22 +409,20 @@ async def run_entire_pipeline(
 
     # 4. Success Path vs Fallback Path
     if qr_verified:
-        logger.info("QR code verified for cert %s. Skipping Blockchain & Tampering checks.", cert.id)
+        logger.info("QR code verified for cert %s. Skipping Blockchain check.", cert.id)
         vr_row.blockchain_status = "skipped"
-        vr_row.tampering_risk_level = "SKIPPED"
-        vr_row.tampering_score = 0.0
         await db.commit()
     else:
-        # Fallback Path: Execute Blockchain & Tampering checks
+        # Fallback Path: Execute Blockchain check
         try:
             await run_blockchain_verification(certificate_id=cert.id, user=user, db=db)
         except Exception as exc:
             logger.exception("Pipeline Blockchain verification failed for cert %s: %s", cert.id, exc)
 
-        try:
-            await run_tampering_detection(certificate_id=cert.id, user=user, db=db)
-        except Exception as exc:
-            logger.exception("Pipeline Tampering detection failed for cert %s: %s", cert.id, exc)
+    try:
+        await run_tampering_detection(certificate_id=cert.id, user=user, db=db)
+    except Exception as exc:
+        logger.exception("Pipeline Tampering detection failed for cert %s: %s", cert.id, exc)
 
     # 5. Duplicate Detection
     try:

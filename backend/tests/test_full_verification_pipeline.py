@@ -75,7 +75,7 @@ def test_full_verification_pipeline_e2e(client):
     assert stages_by_key["field_extraction"]["status"] == "COMPLETED"
     assert stages_by_key["qr_verification"]["status"] in ["COMPLETED", "PENDING"]
     assert stages_by_key["hash_check"]["status"] == "COMPLETED"
-    assert stages_by_key["tampering"]["status"] in ["COMPLETED", "SKIPPED"]
+    assert stages_by_key["tampering"]["status"] == "COMPLETED"
     assert stages_by_key["duplicate"]["status"] == "COMPLETED"
     assert stages_by_key["fraud_analysis"]["status"] == "COMPLETED"
     assert stages_by_key["trust_score"]["status"] == "COMPLETED"

@@ -15,6 +15,14 @@ function VerifyEmailForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -32,13 +40,15 @@ function VerifyEmailForm() {
   }
 
   async function handleResend() {
+    if (cooldown > 0) return;
     setError(null);
     setInfo(null);
     try {
       await authApi.resendOtp({ email });
-      setInfo("A new code has been sent to your email.");
-    } catch {
-      setError("Could not resend code. Please try again shortly.");
+      setInfo("A new 6-digit code has been generated and sent.");
+      setCooldown(60);
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "Could not resend code. Please try again shortly.");
     }
   }
 
@@ -72,8 +82,13 @@ function VerifyEmailForm() {
         {loading ? "Verifying..." : "Verify Email"}
       </button>
 
-      <button type="button" onClick={handleResend} className="w-full text-sm text-brand-500 hover:underline">
-        Resend code
+      <button
+        type="button"
+        disabled={cooldown > 0}
+        onClick={handleResend}
+        className="w-full text-sm text-brand-500 hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+      >
+        {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
       </button>
     </form>
   );

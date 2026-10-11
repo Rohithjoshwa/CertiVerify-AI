@@ -9,8 +9,8 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # App
     APP_NAME: str = "CertiVerify AI - Fake Certificate Detection & Verification System"
-    ENV: str = "development"
-    DEBUG: bool = True
+    ENV: str = "production"  # Safe default: requires explicit ENV=development for dev mode
+    DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
 
     # Security / JWT
@@ -60,18 +60,33 @@ class Settings(BaseSettings):
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
-    def validate_production_secrets(self) -> None:
+    def validate_production_configuration(self) -> None:
         """
-        Production security check: Rejects insecure/default secrets in production mode.
+        Production safety check: Refuses startup if unsafe settings are detected in production.
         """
         if self.ENV.lower() in ("production", "prod"):
-            if not self.SECRET_KEY or self.SECRET_KEY == "CHANGE_ME_IN_PRODUCTION_USE_OPENSSL_RAND_HEX_32" or len(self.SECRET_KEY) < 32:
-                raise ValueError("SECURITY VIOLATION: Insecure or default SECRET_KEY set in production mode!")
+            insecure_defaults = {
+                "CHANGE_ME_IN_PRODUCTION_USE_OPENSSL_RAND_HEX_32",
+                "secret",
+                "changeme",
+                "replace_with_openssl_rand_hex_32",
+                "testsecret",
+            }
+            if not self.SECRET_KEY or self.SECRET_KEY in insecure_defaults or len(self.SECRET_KEY) < 32:
+                raise ValueError("Insecure or default SECRET_KEY set in production mode!")
+            if self.DEBUG:
+                raise ValueError("PRODUCTION REFUSAL: DEBUG mode must be disabled (DEBUG=false) in production.")
+            if not self.DATABASE_URL.lower().startswith(("postgresql://", "postgresql+asyncpg://")):
+                raise ValueError(
+                    f"PRODUCTION REFUSAL: Database must be PostgreSQL in production (got {self.DATABASE_URL.split('://')[0]})."
+                )
             if "*" in self.ALLOWED_ORIGINS:
-                raise ValueError("SECURITY VIOLATION: Wildcard CORS origin '*' is forbidden in production with credentials!")
+                raise ValueError("PRODUCTION REFUSAL: Wildcard CORS origin '*' is forbidden in production.")
+
+    validate_production_secrets = validate_production_configuration
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", "backend/.env")
         case_sensitive = True
 
 

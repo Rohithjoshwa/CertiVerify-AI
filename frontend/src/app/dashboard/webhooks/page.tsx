@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -61,26 +61,33 @@ export default function WebhooksPage() {
     "job.status_changed",
   ];
 
-  const fetchWebhooks = async () => {
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  const fetchWebhooks = useCallback(async () => {
     if (!getAccessToken()) {
       router.replace("/login");
       return;
     }
     setLoading(true);
     setError(null);
+    setPermissionDenied(false);
     try {
       const { data } = await webhookApi.list();
       setWebhooks(data);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Failed to load webhooks.");
+      if (err?.response?.status === 403) {
+        setPermissionDenied(true);
+      } else {
+        setError(err?.response?.data?.detail || "Failed to load webhooks.");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchWebhooks();
-  }, []);
+  }, [fetchWebhooks]);
 
   const handleRegisterWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +190,15 @@ export default function WebhooksPage() {
         </div>
       </div>
 
+      {permissionDenied ? (
+        <div className="p-10 bg-[#0b1c30] border border-[#ffb4ab]/30 rounded-[8px] text-center space-y-3">
+          <Lock size={36} className="text-[#ffb4ab] mx-auto" />
+          <h2 className="text-base font-bold text-[#d3e4fe]">Access Restricted: Permission Denied</h2>
+          <p className="text-xs text-[#8d90a0] max-w-md mx-auto">
+            Configuring webhooks requires the <code className="text-[#38bdf8] font-mono">webhook:manage</code> permission scope. Please contact your organization owner or administrator.
+          </p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Webhook Endpoints List (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
@@ -344,6 +360,7 @@ export default function WebhooksPage() {
           )}
         </div>
       </div>
+      )}
 
       {/* Register Webhook Modal */}
       {showCreateModal && (
