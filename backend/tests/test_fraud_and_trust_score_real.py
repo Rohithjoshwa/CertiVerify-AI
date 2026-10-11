@@ -108,6 +108,8 @@ def test_fraud_and_trust_score_end_to_end_api(client):
         "password": password,
         "role": "student"
     })
+    from tests.conftest import verify_test_user_email_sync
+    verify_test_user_email_sync(email)
     login_res = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

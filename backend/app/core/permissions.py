@@ -21,7 +21,7 @@ PERMISSIONS_MAP: dict[str, list[str]] = {
     ],
     "university": [
         "certificate:upload", "certificate:read", "certificate:verify", "certificate:delete",
-        "user:manage", "audit:read"
+        "org:manage", "user:manage", "audit:read", "api_key:write"
     ],
     "employer": [
         "certificate:read", "certificate:verify"

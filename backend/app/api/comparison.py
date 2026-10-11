@@ -54,11 +54,14 @@ class CertificatePairComparisonResponse(BaseModel):
     doc_a_type: str
     doc_b_type: str
     comparison_rows: List[FieldComparisonRow]
+    field_comparisons: Optional[List[FieldComparisonRow]] = None
     matched_count: int
     mismatched_count: int
     unknown_count: int
     consistency_percentage: float
+    overall_match_status: Optional[str] = None
     summary_narrative: str
+    summary: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -271,6 +274,8 @@ async def compare_pair(
         f"Overall field consistency score: {consistency_pct}%. {discrepancies_text}"
     )
 
+    match_status = "MATCH" if consistency_pct >= 80 else ("PARTIAL MATCH" if consistency_pct >= 40 else "MISMATCH")
+
     return CertificatePairComparisonResponse(
         certificate_id_a=cert_a.id,
         certificate_id_b=cert_b.id,
@@ -279,11 +284,14 @@ async def compare_pair(
         doc_a_type=doc_a_type,
         doc_b_type=doc_b_type,
         comparison_rows=rows,
+        field_comparisons=rows,
         matched_count=matched_cnt,
         mismatched_count=mismatched_cnt,
         unknown_count=unknown_cnt,
         consistency_percentage=consistency_pct,
+        overall_match_status=match_status,
         summary_narrative=summary,
+        summary=summary,
     )
 
 

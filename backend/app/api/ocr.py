@@ -779,7 +779,7 @@ async def extract_ocr(
         fields["student_name"][0]
     )
     ocr_row.university_name = (
-        _tf("university") or _tf("institute") or _tf("institution") or
+        _tf("university") or _tf("institute") or _tf("institution") or _tf("school") or
         type_specific_fields.get("school") or type_specific_fields.get("board") or
         type_specific_fields.get("university") or
         fields["university_name"][0]

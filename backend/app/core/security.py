@@ -6,7 +6,7 @@ incompatibility (removed __about__ attribute + 72-byte wrap-bug detection crash)
 Passwords are SHA-256 pre-hashed before bcrypt so the 72-byte limit is never hit.
 """
 import hashlib
-import random
+import secrets
 import string
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -59,7 +59,8 @@ def decode_token(token: str) -> dict[str, Any] | None:
 # ---------- OTP ----------
 
 def generate_otp(length: int = 6) -> str:
-    return "".join(random.choices(string.digits, k=length))
+    return "".join(secrets.choice(string.digits) for _ in range(length))
+
 
 
 def otp_expiry() -> datetime:

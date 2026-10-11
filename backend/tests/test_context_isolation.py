@@ -34,6 +34,8 @@ async def _get_auth_headers(client: AsyncClient) -> dict:
     await client.post(f"{AUTH_BASE}/register", json={
         "email": email, "password": password, "full_name": "Iso Tester", "role": "verifier"
     })
+    from tests.conftest import verify_test_user_email
+    await verify_test_user_email(email)
     resp = await client.post(f"{AUTH_BASE}/login", json={"email": email, "password": password})
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

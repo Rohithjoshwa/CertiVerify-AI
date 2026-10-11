@@ -231,6 +231,12 @@ async def delete_certificate(
     Only the owner can delete their own certificate (enforced by _get_owned_certificate).
     """
     cert = await _get_owned_certificate(certificate_id, user, db)
+    role_str = str(user.role.value if hasattr(user.role, "value") else user.role).lower()
+    if "admin" not in role_str and str(cert.owner_id) != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Only the certificate owner or an admin can delete this certificate.",
+        )
     logger.info("DELETE START | certificate=%s | owner=%s", cert.id, user.id)
 
     storage = get_storage_backend()

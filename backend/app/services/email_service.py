@@ -14,9 +14,15 @@ logger = logging.getLogger("certiverify.email")
 
 
 async def send_email(to: str, subject: str, html_body: str) -> None:
-    if settings.DEBUG and not settings.SMTP_USER:
-        logger.info(f"[DEV EMAIL] To: {to} | Subject: {subject}\n{html_body}")
-        return
+    is_dev = settings.ENV.lower() in ("development", "dev") or settings.DEBUG
+    if not settings.SMTP_USER:
+        if is_dev:
+            logger.info("[DEV EMAIL] To: %s | Subject: %s\n%s", to, subject, html_body)
+            print(f"\n==================== [DEV EMAIL] ====================\nTo: {to}\nSubject: {subject}\n{html_body}\n====================================================\n")
+            return
+        logger.error("SMTP not configured in production mode. Cannot send email to %s", to)
+        raise RuntimeError("Email delivery service not configured in production.")
+
 
     message = EmailMessage()
     message["From"] = settings.EMAIL_FROM

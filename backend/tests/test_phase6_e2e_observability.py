@@ -43,6 +43,9 @@ async def _get_auth_context(client: AsyncClient, prefix: str = "p6_user") -> tup
     })
     assert reg.status_code == 201
 
+    from tests.conftest import verify_test_user_email
+    await verify_test_user_email(email)
+
     login = await client.post(f"{AUTH_BASE}/login", json={"email": email, "password": password})
     assert login.status_code == 200
     token = login.json()["access_token"]

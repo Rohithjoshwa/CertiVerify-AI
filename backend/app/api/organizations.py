@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/v1/organizations", tags=["Organizations"])
 @router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
     payload: OrganizationCreateRequest,
-    current_user: User = Depends(get_current_verified_user),
+    current_user: User = Depends(require_permission("org:manage")),
     db: AsyncSession = Depends(get_db),
 ):
     """

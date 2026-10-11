@@ -578,9 +578,8 @@ async def _execute_direct_comparison(request: Request) -> DirectCompareResponse:
         given_dt = all_doc_types[i] if i < len(all_doc_types) else ""
         if not given_dt or given_dt in ("auto", "unknown", ""):
             try:
-                img_arr = load_image_as_array(content, ext or "jpg")
-                from app.services.document_classifier import classify_document
-                res = classify_document(img_arr)
+                from app.services.document_classifier import classify
+                res = classify(content, ext or "jpg")
                 dt_val = res.predicted_type.value if hasattr(res.predicted_type, "value") else str(res.predicted_type)
             except Exception:
                 dt_val = "marksheet"

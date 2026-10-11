@@ -160,16 +160,25 @@ def verify_tenant_access(
     resource_owner_id: str | None = None,
 ) -> bool:
     """
-    Validates tenant multi-tenancy isolation.
+    Validates tenant multi-tenancy isolation and resource ownership.
     Returns True if user has access to resource, else raises HTTP 403.
     """
     role_str = str(user.role.value if hasattr(user.role, "value") else user.role).lower()
     if "admin" in role_str:
         return True
 
+    # If the user is the direct resource owner, access is granted
     if resource_owner_id and str(resource_owner_id) == str(user.id):
         return True
 
+    # Individual students can ONLY access resources they own
+    if role_str == "student":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You do not own this certificate.",
+        )
+
+    # Organization staff / verifiers can access resources within their own organization
     if resource_org_id and user.organization_id and str(resource_org_id) == str(user.organization_id):
         return True
 

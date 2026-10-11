@@ -227,3 +227,25 @@ def test_comparison_010_legacy_fallback_parameters_work():
     assert resp.status_code == 200, resp.text
     res = resp.json()
     assert res["comparison_type"] == "identical_document"
+
+
+def test_comparison_automatic_document_classification():
+    """Verifies that direct-compare uses the real classifier function when doc_types is 'auto' or empty."""
+    img1 = _create_test_image_bytes("Bachelor of Technology Degree Certificate")
+    img2 = _create_test_image_bytes("Semester Grade Marksheet")
+
+    files = [
+        ("files", ("cert1.jpg", img1, "image/jpeg")),
+        ("files", ("cert2.jpg", img2, "image/jpeg")),
+        ("doc_types", (None, "auto")),
+        ("doc_types", (None, "")),
+    ]
+
+    client = TestClient(app)
+    resp = client.post(DIRECT_COMPARE_URL, files=files)
+    assert resp.status_code == 200, resp.text
+    res = resp.json()
+    assert res["documents_compared"] == 2
+    assert "similarity_percentage" in res
+    assert "doc1_type" in res
+    assert "doc2_type" in res

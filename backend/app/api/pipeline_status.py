@@ -96,39 +96,39 @@ async def get_pipeline_status(
 
     # Fetch all related rows in parallel-ish (sequential but cheap)
     doc_type = (await db.execute(
-        select(DocumentType).where(DocumentType.certificate_id == certificate_id)
-    )).scalar_one_or_none()
+        select(DocumentType).where(DocumentType.certificate_id == certificate_id).order_by(DocumentType.id.desc())
+    )).scalars().first()
 
     ocr = (await db.execute(
-        select(OCRData).where(OCRData.certificate_id == certificate_id)
-    )).scalar_one_or_none()
+        select(OCRData).where(OCRData.certificate_id == certificate_id).order_by(OCRData.id.desc())
+    )).scalars().first()
 
     comparison = None
     if cert.group_id:
         comparison_res = await db.execute(
-            select(DocumentComparison).where(DocumentComparison.group_id == cert.group_id)
+            select(DocumentComparison).where(DocumentComparison.group_id == cert.group_id).order_by(DocumentComparison.id.desc())
         )
-        comparison = comparison_res.scalar_one_or_none()
+        comparison = comparison_res.scalars().first()
 
     vr = (await db.execute(
-        select(VerificationResult).where(VerificationResult.certificate_id == certificate_id)
-    )).scalar_one_or_none()
+        select(VerificationResult).where(VerificationResult.certificate_id == certificate_id).order_by(VerificationResult.id.desc())
+    )).scalars().first()
 
     fraud = (await db.execute(
-        select(FraudAnalysis).where(FraudAnalysis.certificate_id == certificate_id)
-    )).scalar_one_or_none()
+        select(FraudAnalysis).where(FraudAnalysis.certificate_id == certificate_id).order_by(FraudAnalysis.id.desc())
+    )).scalars().first()
 
     trust = (await db.execute(
-        select(TrustScore).where(TrustScore.certificate_id == certificate_id)
-    )).scalar_one_or_none()
+        select(TrustScore).where(TrustScore.certificate_id == certificate_id).order_by(TrustScore.id.desc())
+    )).scalars().first()
 
     prediction = (await db.execute(
-        select(FinalPrediction).where(FinalPrediction.certificate_id == certificate_id)
-    )).scalar_one_or_none()
+        select(FinalPrediction).where(FinalPrediction.certificate_id == certificate_id).order_by(FinalPrediction.id.desc())
+    )).scalars().first()
 
     report = (await db.execute(
-        select(VerificationReport).where(VerificationReport.certificate_id == certificate_id)
-    )).scalar_one_or_none()
+        select(VerificationReport).where(VerificationReport.certificate_id == certificate_id).order_by(VerificationReport.id.desc())
+    )).scalars().first()
 
     # ── Build pipeline stages ────────────────────────────────────────────────
     stages: list[PipelineStage] = []

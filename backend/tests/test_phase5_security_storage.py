@@ -53,6 +53,9 @@ async def _get_auth_headers(client: AsyncClient, email_prefix: str = "sec_user")
     })
     assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
 
+    from tests.conftest import verify_test_user_email
+    await verify_test_user_email(email)
+
     resp = await client.post(f"{AUTH_BASE}/login", json={"email": email, "password": password})
     assert resp.status_code == 200, f"Login failed: {resp.text}"
     token = resp.json()["access_token"]

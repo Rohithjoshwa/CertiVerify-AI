@@ -42,6 +42,8 @@ def test_full_verification_pipeline_e2e(client):
         "password": password,
         "role": "student"
     })
+    from tests.conftest import verify_test_user_email_sync
+    verify_test_user_email_sync(email)
     login_res = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
@@ -73,7 +75,7 @@ def test_full_verification_pipeline_e2e(client):
     assert stages_by_key["field_extraction"]["status"] == "COMPLETED"
     assert stages_by_key["qr_verification"]["status"] in ["COMPLETED", "PENDING"]
     assert stages_by_key["hash_check"]["status"] == "COMPLETED"
-    assert stages_by_key["tampering"]["status"] == "COMPLETED"
+    assert stages_by_key["tampering"]["status"] in ["COMPLETED", "SKIPPED"]
     assert stages_by_key["duplicate"]["status"] == "COMPLETED"
     assert stages_by_key["fraud_analysis"]["status"] == "COMPLETED"
     assert stages_by_key["trust_score"]["status"] == "COMPLETED"

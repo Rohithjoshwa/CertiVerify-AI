@@ -40,26 +40,26 @@ async def run_trust_score(
 ):
     cert = await _get_owned_certificate(certificate_id, user, db)
 
-    ocr_result = await db.execute(select(OCRData).where(OCRData.certificate_id == cert.id))
-    ocr_row = ocr_result.scalar_one_or_none()
+    ocr_result = await db.execute(select(OCRData).where(OCRData.certificate_id == cert.id).order_by(OCRData.id.desc()))
+    ocr_row = ocr_result.scalars().first()
 
-    doc_type_result = await db.execute(select(DocumentType).where(DocumentType.certificate_id == cert.id))
-    doc_type_row = doc_type_result.scalar_one_or_none()
+    doc_type_result = await db.execute(select(DocumentType).where(DocumentType.certificate_id == cert.id).order_by(DocumentType.id.desc()))
+    doc_type_row = doc_type_result.scalars().first()
 
     comparison_row = None
     if cert.group_id:
         comparison_result = await db.execute(
-            select(DocumentComparison).where(DocumentComparison.group_id == cert.group_id)
+            select(DocumentComparison).where(DocumentComparison.group_id == cert.group_id).order_by(DocumentComparison.id.desc())
         )
-        comparison_row = comparison_result.scalar_one_or_none()
+        comparison_row = comparison_result.scalars().first()
 
     verification_result = await db.execute(
-        select(VerificationResult).where(VerificationResult.certificate_id == cert.id)
+        select(VerificationResult).where(VerificationResult.certificate_id == cert.id).order_by(VerificationResult.id.desc())
     )
-    verification_row = verification_result.scalar_one_or_none()
+    verification_row = verification_result.scalars().first()
 
-    fraud_result = await db.execute(select(FraudAnalysis).where(FraudAnalysis.certificate_id == cert.id))
-    fraud_row = fraud_result.scalar_one_or_none()
+    fraud_result = await db.execute(select(FraudAnalysis).where(FraudAnalysis.certificate_id == cert.id).order_by(FraudAnalysis.id.desc()))
+    fraud_row = fraud_result.scalars().first()
 
     storage = get_storage_backend()
     file_bytes = await storage.read(cert.storage_path)
@@ -85,8 +85,8 @@ async def run_trust_score(
 
     result = compute_trust_score(inputs)
 
-    existing = await db.execute(select(TrustScore).where(TrustScore.certificate_id == cert.id))
-    trust_row = existing.scalar_one_or_none()
+    existing = await db.execute(select(TrustScore).where(TrustScore.certificate_id == cert.id).order_by(TrustScore.id.desc()))
+    trust_row = existing.scalars().first()
     if trust_row is None:
         trust_row = TrustScore(certificate_id=cert.id)
         db.add(trust_row)
@@ -110,8 +110,8 @@ async def get_trust_score(
     db: AsyncSession = Depends(get_db),
 ):
     cert = await _get_owned_certificate(certificate_id, user, db)
-    result = await db.execute(select(TrustScore).where(TrustScore.certificate_id == cert.id))
-    trust_row = result.scalar_one_or_none()
+    result = await db.execute(select(TrustScore).where(TrustScore.certificate_id == cert.id).order_by(TrustScore.id.desc()))
+    trust_row = result.scalars().first()
     if not trust_row:
         raise HTTPException(status_code=404, detail="No trust score has been computed for this certificate yet.")
     return trust_row

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.models.models import User, ApiKey
-from app.api.deps import get_current_verified_user, verify_tenant_access
+from app.api.deps import get_current_verified_user, verify_tenant_access, require_permission
 from app.schemas.api_key_schemas import ApiKeyCreateRequest, ApiKeyCreateResponse, ApiKeyResponse
 from app.services.api_key_service import create_api_key
 from app.services.audit_service import log_audit_event
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/v1/api-keys", tags=["API Keys"])
 @router.post("", response_model=ApiKeyCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_new_api_key(
     req: ApiKeyCreateRequest,
-    current_user: User = Depends(get_current_verified_user),
+    current_user: User = Depends(require_permission("api_key:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -56,7 +56,7 @@ async def create_new_api_key(
 
 @router.get("", response_model=List[ApiKeyResponse])
 async def list_api_keys(
-    current_user: User = Depends(get_current_verified_user),
+    current_user: User = Depends(require_permission("api_key:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -94,7 +94,7 @@ async def list_api_keys(
 @router.delete("/{key_id}", status_code=status.HTTP_200_OK)
 async def revoke_api_key(
     key_id: str,
-    current_user: User = Depends(get_current_verified_user),
+    current_user: User = Depends(require_permission("api_key:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """

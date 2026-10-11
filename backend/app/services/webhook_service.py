@@ -76,23 +76,83 @@ def verify_webhook_signature(payload_bytes: bytes, secret: str, signature_header
         return False
 
 
+import ipaddress
+import socket
+
+def is_ip_private_or_reserved(ip_str: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        return (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        )
+    except ValueError:
+        return False
+
+
 def validate_webhook_url(url: str) -> bool:
     """
     Validates URL safety to prevent SSRF against internal services.
-    Allows standard http/https schemes, blocks localhost, private IPs, and metadata services.
+    Allows standard http/https schemes, blocks localhost, private IPs (RFC 1918),
+    loopback, link-local, cloud metadata services, and internal hostnames.
     """
     try:
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             return False
         hostname = (parsed.hostname or "").lower()
-        if hostname in (
-            "localhost", "127.0.0.1", "0.0.0.0", "::1",
-            "169.254.169.254", "metadata.google.internal"
+        if not hostname:
+            return False
+
+        # Block well-known internal/metadata hostnames
+        blocked_hostnames = {
+            "localhost",
+            "metadata.google.internal",
+            "instance-data",
+            "metadata",
+        }
+        if (
+            hostname in blocked_hostnames
+            or hostname.endswith(".local")
+            or hostname.endswith(".internal")
+            or hostname.endswith(".localhost")
         ):
             return False
-        if hostname.startswith("192.168.") or hostname.startswith("10."):
+
+        # Check if hostname directly represents an IP address
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if is_ip_private_or_reserved(str(ip)) or str(ip) == "169.254.169.254":
+                return False
+            return True
+        except ValueError:
+            pass
+
+        # String-prefix heuristic for common internal ranges if hostname is IP-like
+        if (
+            hostname.startswith("10.")
+            or hostname.startswith("192.168.")
+            or hostname.startswith("127.")
+            or hostname.startswith("169.254.")
+        ):
             return False
+
+        # Resolve hostname via DNS to prevent DNS rebinding or internal resolution
+        try:
+            addr_info = socket.getaddrinfo(hostname, None)
+            for _, _, _, _, sockaddr in addr_info:
+                ip_addr = sockaddr[0]
+                if is_ip_private_or_reserved(ip_addr) or ip_addr == "169.254.169.254":
+                    return False
+        except socket.gaierror:
+            # Cannot resolve domain (e.g. offline tests). Allow safe domains, block internal
+            if "localhost" in hostname or "internal" in hostname:
+                return False
+
         return True
     except Exception:
         return False
@@ -195,6 +255,12 @@ async def execute_delivery_attempt(
     if not endpoint or not endpoint.active:
         delivery.status = "FAILED"
         delivery.response_body = "Endpoint deactivated or deleted."
+        await db.commit()
+        return delivery
+
+    if not validate_webhook_url(endpoint.endpoint_url):
+        delivery.status = "FAILED"
+        delivery.response_body = "Delivery blocked: Target URL failed SSRF safety checks."
         await db.commit()
         return delivery
 

@@ -16,23 +16,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
     hash_password, verify_password, create_access_token, create_refresh_token,
-    decode_token,
-    # [OTP-RESTORE] Uncomment the two imports below when re-enabling OTP flow:
-    # generate_otp, otp_expiry,
+    decode_token, generate_otp, otp_expiry,
 )
 from app.db.database import get_db
-from app.models.models import User, UserRole, PasswordResetToken
-# [OTP-RESTORE] Uncomment the line below when re-enabling OTP flow:
-# from app.models.models import OTPCode, OTPPurpose
+from app.models.models import User, UserRole, PasswordResetToken, OTPCode, OTPPurpose
 from app.schemas.auth_schemas import (
     UserRegisterRequest, UserResponse, LoginRequest, TokenResponse,
-    RefreshTokenRequest,
-    # [OTP-RESTORE] Uncomment the three schema imports below when re-enabling OTP flow:
-    # OTPVerifyRequest, ResendOTPRequest,
+    RefreshTokenRequest, OTPVerifyRequest, ResendOTPRequest,
     ForgotPasswordRequest, ResetPasswordRequest,
 )
-# [OTP-RESTORE] Uncomment the import below when re-enabling OTP/email flow:
-# from app.services.email_service import send_otp_email, send_password_reset_email
+from app.services.email_service import send_otp_email, send_password_reset_email
 from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
@@ -40,15 +33,13 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 # ---------------------------------------------------------------------------
 # REGISTER
-# DEV MODE: email_verified is set to True immediately; no OTP is issued.
 # ---------------------------------------------------------------------------
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     payload: UserRegisterRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    # [OTP-RESTORE] Restore BackgroundTasks parameter when re-enabling OTP flow:
-    # background_tasks: BackgroundTasks,
 ):
     existing = await db.execute(select(User).where(User.email == payload.email))
     if existing.scalar_one_or_none():
@@ -57,7 +48,15 @@ async def register(
     try:
         role = UserRole(payload.role)
     except ValueError:
-        role = UserRole.STUDENT
+        role_lower = (payload.role or "").lower()
+        if role_lower in ("verifier", "university", "org_admin", "institution"):
+            role = UserRole.UNIVERSITY
+        elif role_lower in ("admin", "superadmin"):
+            role = UserRole.ADMIN
+        elif role_lower in ("employer", "recruiter"):
+            role = UserRole.EMPLOYER
+        else:
+            role = UserRole.STUDENT
 
     user = User(
         full_name=payload.full_name,
@@ -65,83 +64,87 @@ async def register(
         hashed_password=hash_password(payload.password),
         role=role,
         is_active=True,
-        # DEV MODE: skip email verification — set directly to True.
-        # [OTP-RESTORE] Change back to False when re-enabling OTP flow.
-        is_email_verified=True,
+        is_email_verified=False,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
 
-    # [OTP-RESTORE] Uncomment the block below to re-enable OTP email on registration:
-    # otp = generate_otp()
-    # otp_row = OTPCode(
-    #     user_id=user.id, code=otp, purpose=OTPPurpose.EMAIL_VERIFICATION,
-    #     expires_at=otp_expiry(),
-    # )
-    # db.add(otp_row)
-    # await db.commit()
-    # background_tasks.add_task(send_otp_email, user.email, otp, "email_verification")
+    otp = generate_otp()
+    otp_row = OTPCode(
+        user_id=user.id,
+        code=otp,
+        purpose=OTPPurpose.EMAIL_VERIFICATION,
+        expires_at=otp_expiry(),
+    )
+    db.add(otp_row)
+    await db.commit()
+
+    background_tasks.add_task(send_otp_email, user.email, otp, "email_verification")
 
     return user
 
 
 # ---------------------------------------------------------------------------
 # EMAIL VERIFICATION (OTP)
-# [OTP-RESTORE] Uncomment this entire section to re-enable email verification.
 # ---------------------------------------------------------------------------
 
-# @router.post("/verify-email", response_model=UserResponse)
-# async def verify_email(payload: OTPVerifyRequest, db: AsyncSession = Depends(get_db)):
-#     result = await db.execute(select(User).where(User.email == payload.email))
-#     user = result.scalar_one_or_none()
-#     if not user:
-#         raise HTTPException(status_code=404, detail="User not found.")
-#
-#     otp_result = await db.execute(
-#         select(OTPCode)
-#         .where(
-#             OTPCode.user_id == user.id,
-#             OTPCode.purpose == OTPPurpose.EMAIL_VERIFICATION,
-#             OTPCode.is_used.is_(False),
-#         )
-#         .order_by(OTPCode.created_at.desc())
-#     )
-#     otp_row = otp_result.scalars().first()
-#
-#     if not otp_row or otp_row.code != payload.code:
-#         raise HTTPException(status_code=400, detail="Invalid verification code.")
-#     if otp_row.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-#         raise HTTPException(status_code=400, detail="Verification code expired. Please request a new one.")
-#
-#     otp_row.is_used = True
-#     user.is_email_verified = True
-#     await db.commit()
-#     await db.refresh(user)
-#     return user
+@router.post("/verify-email", response_model=UserResponse)
+async def verify_email(payload: OTPVerifyRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == payload.email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    otp_result = await db.execute(
+        select(OTPCode)
+        .where(
+            OTPCode.user_id == user.id,
+            OTPCode.purpose == OTPPurpose.EMAIL_VERIFICATION,
+            OTPCode.is_used.is_(False),
+        )
+        .order_by(OTPCode.created_at.desc())
+    )
+    otp_row = otp_result.scalars().first()
+
+    if not otp_row or otp_row.code != payload.code:
+        raise HTTPException(status_code=400, detail="Invalid verification code.")
+
+    exp = otp_row.expires_at
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if exp < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Verification code expired. Please request a new one.")
+
+    otp_row.is_used = True
+    user.is_email_verified = True
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
-# [OTP-RESTORE] Uncomment this entire section to re-enable OTP resend.
-# @router.post("/resend-otp", status_code=status.HTTP_202_ACCEPTED)
-# async def resend_otp(
-#     payload: ResendOTPRequest,
-#     background_tasks: BackgroundTasks,
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     result = await db.execute(select(User).where(User.email == payload.email))
-#     user = result.scalar_one_or_none()
-#     if not user:
-#         # Do not reveal whether the email exists
-#         return {"message": "If an account exists, a new code has been sent."}
-#
-#     otp = generate_otp()
-#     db.add(OTPCode(
-#         user_id=user.id, code=otp, purpose=OTPPurpose.EMAIL_VERIFICATION,
-#         expires_at=otp_expiry(),
-#     ))
-#     await db.commit()
-#     background_tasks.add_task(send_otp_email, user.email, otp, "email_verification")
-#     return {"message": "If an account exists, a new code has been sent."}
+@router.post("/resend-otp", status_code=status.HTTP_202_ACCEPTED)
+async def resend_otp(
+    payload: ResendOTPRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.email == payload.email))
+    user = result.scalar_one_or_none()
+    if not user:
+        # Generic response prevents account enumeration
+        return {"message": "If an account exists, a new code has been sent."}
+
+    otp = generate_otp()
+    db.add(OTPCode(
+        user_id=user.id,
+        code=otp,
+        purpose=OTPPurpose.EMAIL_VERIFICATION,
+        expires_at=otp_expiry(),
+    ))
+    await db.commit()
+    background_tasks.add_task(send_otp_email, user.email, otp, "email_verification")
+    return {"message": "If an account exists, a new code has been sent."}
 
 
 # ---------------------------------------------------------------------------
@@ -157,9 +160,8 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="This account has been deactivated.")
-    # [OTP-RESTORE] Uncomment the block below when re-enabling email verification:
-    # if not user.is_email_verified:
-    #     raise HTTPException(status_code=403, detail="Please verify your email before logging in.")
+    if not user.is_email_verified:
+        raise HTTPException(status_code=403, detail="Email not verified. Please verify your email before logging in.")
 
     access_token = create_access_token(subject=user.id, extra_claims={"role": user.role.value})
     refresh_token = create_refresh_token(subject=user.id)

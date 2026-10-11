@@ -88,7 +88,9 @@ async def get_job_status(
     if not job:
         raise HTTPException(status_code=404, detail="Verification job not found")
 
-    verify_tenant_access(current_user, job.organization_id)
+    cert_res = await db.execute(select(Certificate.owner_id).where(Certificate.id == job.certificate_id))
+    owner_id = cert_res.scalar_one_or_none()
+    verify_tenant_access(current_user, job.organization_id, owner_id)
 
     job_dict = {
         "id": job.id,
@@ -167,7 +169,9 @@ async def retry_verification_job(
     if not job:
         raise HTTPException(status_code=404, detail="Verification job not found")
 
-    verify_tenant_access(current_user, job.organization_id)
+    cert_res = await db.execute(select(Certificate.owner_id).where(Certificate.id == job.certificate_id))
+    owner_id = cert_res.scalar_one_or_none()
+    verify_tenant_access(current_user, job.organization_id, owner_id)
 
     if job.status != JobStatus.FAILED:
         raise HTTPException(

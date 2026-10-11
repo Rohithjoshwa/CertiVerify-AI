@@ -60,14 +60,16 @@ async def test_weak_password_rejected():
 async def test_login_blocked_before_email_verification():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        unique_email = f"unverified_{uuid.uuid4().hex[:8]}@example.com"
         await ac.post(f"{BASE}/register", json={
-            "full_name": "Unverified", "email": "unverified@example.com",
+            "full_name": "Unverified", "email": unique_email,
             "password": "StrongPass1", "role": "student",
         })
         resp = await ac.post(f"{BASE}/login", json={
-            "email": "unverified@example.com", "password": "StrongPass1",
+            "email": unique_email, "password": "StrongPass1",
         })
-    assert resp.status_code in (200, 403)
+    assert resp.status_code == 403
+    assert "not verified" in resp.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -78,3 +80,103 @@ async def test_login_wrong_password():
             "email": "nonexistent@example.com", "password": "whatever123",
         })
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_register_verify_login_complete_flow():
+    """Full lifecycle: register -> blocked login -> verify-email with OTP -> successful login."""
+    unique_email = f"flow_user_{uuid.uuid4().hex[:8]}@example.com"
+    password = "StrongPass1"
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # 1. Register
+        reg = await ac.post(f"{BASE}/register", json={
+            "full_name": "Flow Tester",
+            "email": unique_email,
+            "password": password,
+            "role": "student",
+        })
+        assert reg.status_code == 201
+        assert reg.json()["is_email_verified"] is False
+
+        # 2. Login attempt must fail with 403
+        login_fail = await ac.post(f"{BASE}/login", json={"email": unique_email, "password": password})
+        assert login_fail.status_code == 403
+        assert "not verified" in login_fail.json()["detail"].lower()
+
+        # 3. Verify with wrong OTP fails
+        wrong_verify = await ac.post(f"{BASE}/verify-email", json={"email": unique_email, "code": "999999"})
+        assert wrong_verify.status_code == 400
+
+        # 4. Fetch actual OTP from database
+        from app.db.database import AsyncSessionLocal
+        from app.models.models import User, OTPCode, OTPPurpose
+        from sqlalchemy import select
+        async with AsyncSessionLocal() as session:
+            user_res = await session.execute(select(User).where(User.email == unique_email))
+            user = user_res.scalar_one()
+            otp_res = await session.execute(
+                select(OTPCode)
+                .where(OTPCode.user_id == user.id, OTPCode.purpose == OTPPurpose.EMAIL_VERIFICATION)
+                .order_by(OTPCode.created_at.desc())
+            )
+            otp = otp_res.scalars().first()
+            assert otp is not None
+            valid_code = otp.code
+
+        # 5. Verify email with correct OTP succeeds
+        verify_ok = await ac.post(f"{BASE}/verify-email", json={"email": unique_email, "code": valid_code})
+        assert verify_ok.status_code == 200
+        assert verify_ok.json()["is_email_verified"] is True
+
+        # 6. Login now succeeds
+        login_ok = await ac.post(f"{BASE}/login", json={"email": unique_email, "password": password})
+        assert login_ok.status_code == 200
+        tokens = login_ok.json()
+        assert "access_token" in tokens
+        assert "refresh_token" in tokens
+
+
+@pytest.mark.asyncio
+async def test_resend_otp_flow():
+    """Resend OTP creates new code and permits subsequent verification."""
+    unique_email = f"resend_user_{uuid.uuid4().hex[:8]}@example.com"
+    password = "StrongPass1"
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Register
+        await ac.post(f"{BASE}/register", json={
+            "full_name": "Resend Tester",
+            "email": unique_email,
+            "password": password,
+            "role": "student",
+        })
+
+        # Request resend OTP
+        resend_resp = await ac.post(f"{BASE}/resend-otp", json={"email": unique_email})
+        assert resend_resp.status_code == 202
+
+        # Fetch latest OTP from database
+        from app.db.database import AsyncSessionLocal
+        from app.models.models import User, OTPCode, OTPPurpose
+        from sqlalchemy import select
+        async with AsyncSessionLocal() as session:
+            user_res = await session.execute(select(User).where(User.email == unique_email))
+            user = user_res.scalar_one()
+            otp_res = await session.execute(
+                select(OTPCode)
+                .where(OTPCode.user_id == user.id, OTPCode.purpose == OTPPurpose.EMAIL_VERIFICATION)
+                .order_by(OTPCode.created_at.desc())
+            )
+            otp = otp_res.scalars().first()
+            assert otp is not None
+            valid_code = otp.code
+
+        # Verify with resent OTP
+        verify_ok = await ac.post(f"{BASE}/verify-email", json={"email": unique_email, "code": valid_code})
+        assert verify_ok.status_code == 200
+        assert verify_ok.json()["is_email_verified"] is True
+
+        # Successful login
+        login_ok = await ac.post(f"{BASE}/login", json={"email": unique_email, "password": password})
+        assert login_ok.status_code == 200

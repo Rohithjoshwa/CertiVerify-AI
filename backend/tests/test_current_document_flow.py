@@ -26,6 +26,8 @@ def test_upload_and_certificate_id_flow(client):
         "password": password,
         "role": "student"
     })
+    from tests.conftest import verify_test_user_email_sync, generate_valid_pdf_bytes
+    verify_test_user_email_sync(email)
     
     login_res = client.post("/api/v1/auth/login", json={
         "email": email,
@@ -35,7 +37,7 @@ def test_upload_and_certificate_id_flow(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     # 2. Upload Document 1
-    file1_content = b"%PDF-1.4 Mock Certificate Content Document 1"
+    file1_content = generate_valid_pdf_bytes("Mock Certificate Content Document 1")
     files1 = {"files": ("cert1.pdf", io.BytesIO(file1_content), "application/pdf")}
     upload1_res = client.post("/api/v1/certificates/upload", files=files1, headers=headers)
     assert upload1_res.status_code == 201
@@ -54,7 +56,7 @@ def test_upload_and_certificate_id_flow(client):
     assert preview1_res.content == file1_content
 
     # 4. Upload Document 2 (New Current Document)
-    file2_content = b"%PDF-1.4 Mock Certificate Content Document 2"
+    file2_content = generate_valid_pdf_bytes("Mock Certificate Content Document 2")
     files2 = {"files": ("cert2.pdf", io.BytesIO(file2_content), "application/pdf")}
     upload2_res = client.post("/api/v1/certificates/upload", files=files2, headers=headers)
     assert upload2_res.status_code == 201
