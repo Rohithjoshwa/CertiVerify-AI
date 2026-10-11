@@ -1,23 +1,38 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   History,
-  Clock,
   Search,
   RefreshCw,
-  FileText,
-  ShieldCheck,
-  ShieldAlert,
   AlertTriangle,
-  Loader2,
   ExternalLink,
   Download,
-  FileQuestion,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  FileCheck2,
 } from "lucide-react";
 import { certificateApi, CertificateHistoryItem, getAccessToken, reportApi } from "@/lib/api";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from "@/components/ui/Table";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function VerificationHistoryPage() {
   const router = useRouter();
@@ -25,6 +40,9 @@ export default function VerificationHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [verdictFilter, setVerdictFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const fetchHistory = useCallback(async () => {
     if (!getAccessToken()) {
@@ -36,8 +54,9 @@ export default function VerificationHistoryPage() {
     try {
       const { data } = await certificateApi.getHistory();
       setHistoryItems(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Failed to load verification history.");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { detail?: string } }; message?: string };
+      setError(apiErr?.response?.data?.detail || apiErr?.message || "Failed to load verification history.");
     } finally {
       setLoading(false);
     }
@@ -47,144 +66,280 @@ export default function VerificationHistoryPage() {
     fetchHistory();
   }, [fetchHistory]);
 
-  const filteredItems = historyItems.filter((item) => {
-    const q = search.toLowerCase().trim();
-    return (
-      !q ||
-      item.filename.toLowerCase().includes(q) ||
-      item.certificate_id.toLowerCase().includes(q) ||
-      (item.prediction || "").toLowerCase().includes(q) ||
-      (item.document_type || "").toLowerCase().includes(q)
-    );
-  });
+  const handleDownloadReport = async (certId: string) => {
+    setDownloadingId(certId);
+    try {
+      const url = reportApi.downloadUrl(certId);
+      const token = getAccessToken();
+      const directUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
+      window.open(directUrl, "_blank");
+    } catch (err) {
+      console.error("Failed to download report:", err);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const filteredItems = useMemo(() => {
+    return historyItems.filter((item) => {
+      const q = search.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        item.filename.toLowerCase().includes(q) ||
+        item.certificate_id.toLowerCase().includes(q) ||
+        (item.prediction || "").toLowerCase().includes(q) ||
+        (item.document_type || "").toLowerCase().includes(q);
+
+      const matchesVerdict =
+        verdictFilter === "all" ||
+        (item.prediction || "").toLowerCase() === verdictFilter.toLowerCase();
+
+      return matchesSearch && matchesVerdict;
+    });
+  }, [historyItems, search, verdictFilter]);
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, verdictFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b1c30] border border-[#1b2b3f] p-5 rounded-[8px]">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-[#8d90a0] mb-1">
-            <Link href="/dashboard" className="hover:text-[#d3e4fe]">Dashboard</Link>
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400 mb-1.5">
+            <Link href="/dashboard" className="hover:text-indigo-600 transition-colors">
+              Dashboard
+            </Link>
             <span>/</span>
-            <span className="text-[#38bdf8]">Verification History</span>
+            <span className="text-indigo-600 font-semibold">Verification History</span>
           </div>
-          <h1 className="text-xl font-bold text-[#d3e4fe] font-sans flex items-center gap-2">
-            <History size={22} className="text-[#38bdf8]" />
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+            <History size={22} className="text-indigo-600" />
             Chronological Verification History
           </h1>
-          <p className="text-xs text-[#8d90a0]">
+          <p className="text-xs text-slate-500 mt-1">
             Complete ledger of past verification events, forensic outcomes, and generated audit reports.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={fetchHistory}
-            className="p-2 bg-[#000f21] hover:bg-[#102034] text-[#8d90a0] hover:text-[#d3e4fe] border border-[#1b2b3f] rounded"
+            variant="ghost"
+            size="sm"
+            aria-label="Refresh history"
             title="Refresh history"
           >
             <RefreshCw size={14} />
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Main History Table */}
-      <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] overflow-hidden space-y-0">
-        <div className="p-4 border-b border-[#1b2b3f] flex items-center justify-between gap-3 bg-[#0b1c30]">
-          <div className="relative w-full md:w-80">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8d90a0]" />
-            <input
-              type="text"
-              placeholder="Search history by filename or UUID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#000f21] border border-[#1b2b3f] text-[#d3e4fe] text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:border-[#38bdf8]"
-            />
+      {/* Main Table Card */}
+      <Card>
+        <CardHeader className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-80">
+              <Input
+                type="text"
+                placeholder="Search by filename or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                leftIcon={<Search size={14} className="text-slate-400" />}
+              />
+            </div>
+
+            <div className="w-full sm:w-44">
+              <Select
+                value={verdictFilter}
+                onChange={(e) => setVerdictFilter(e.target.value)}
+                options={[
+                  { value: "all", label: "All Verdicts" },
+                  { value: "genuine", label: "Genuine Only" },
+                  { value: "suspicious", label: "Suspicious Only" },
+                  { value: "fake", label: "Fake Only" },
+                ]}
+              />
+            </div>
           </div>
 
-          <span className="text-xs font-mono text-[#8d90a0]">
+          <span className="text-xs font-mono text-slate-500 shrink-0">
             Showing {filteredItems.length} of {historyItems.length} events
           </span>
-        </div>
+        </CardHeader>
 
-        {loading ? (
-          <div className="py-20 text-center space-y-2">
-            <Loader2 size={24} className="animate-spin text-[#38bdf8] mx-auto" />
-            <p className="text-xs text-[#8d90a0]">Loading verification history ledger...</p>
-          </div>
-        ) : error ? (
-          <div className="p-10 text-center text-xs text-[#ffb4ab] space-y-2">
-            <AlertTriangle size={24} className="mx-auto" />
-            <p>{error}</p>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="py-16 text-center space-y-3">
-            <FileQuestion size={36} className="text-[#8d90a0] mx-auto opacity-50" />
-            <p className="text-xs text-[#8d90a0]">No verification history records found.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-[#000f21] text-[#8d90a0] border-b border-[#1b2b3f] font-mono text-[10px] uppercase">
-                <tr>
-                  <th className="px-4 py-3">Timestamp</th>
-                  <th className="px-4 py-3">Document</th>
-                  <th className="px-4 py-3">Doc Type</th>
-                  <th className="px-4 py-3">Trust Score</th>
-                  <th className="px-4 py-3">Verdict</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1b2b3f]">
-                {filteredItems.map((item, idx) => (
-                  <tr key={`${item.certificate_id}-${idx}`} className="hover:bg-[#102034]/60 transition-colors">
-                    <td className="px-4 py-3 font-mono text-[11px] text-[#8d90a0] whitespace-nowrap">
-                      {new Date(item.timestamp).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-[#d3e4fe] truncate max-w-xs">{item.filename}</div>
-                      <div className="font-mono text-[9px] text-[#8d90a0] uppercase">{item.file_type}</div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-[#38bdf8]">
-                      {item.document_type || "Unclassified"}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px]">
-                      {item.trust_score != null ? (
-                        <span className={item.trust_score >= 70 ? "text-[#4edea3]" : "text-[#ffb95f]"}>
-                          {Math.round(item.trust_score)} / 100
-                        </span>
-                      ) : (
-                        <span className="text-[#8d90a0]">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-10 text-center text-xs text-rose-600 space-y-2">
+              <AlertTriangle size={24} className="mx-auto" />
+              <p>{error}</p>
+              <Button onClick={fetchHistory} variant="primary" size="sm" className="mt-2">
+                Retry Loading
+              </Button>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="p-10">
+              <EmptyState
+                icon={<FileCheck2 size={32} className="text-slate-400" />}
+                title="No verification records found"
+                description={
+                  search || verdictFilter !== "all"
+                    ? "Try adjusting your search query or verdict filter."
+                    : "Upload documents to begin generating verifiable ledger records."
+                }
+                action={
+                  <Link href="/dashboard/upload">
+                    <Button variant="primary" size="sm">
+                      Upload Certificate
+                    </Button>
+                  </Link>
+                }
+              />
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50 text-[10px] uppercase font-mono text-slate-500">
+                      <TableHead className="px-5 py-3">Timestamp</TableHead>
+                      <TableHead className="px-5 py-3">Document</TableHead>
+                      <TableHead className="px-5 py-3">Doc Type</TableHead>
+                      <TableHead className="px-5 py-3">Trust Score</TableHead>
+                      <TableHead className="px-5 py-3">Verdict</TableHead>
+                      <TableHead className="px-5 py-3 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedItems.map((item, idx) => {
+                      const verdictVariant =
                         item.prediction === "genuine"
-                          ? "bg-[#4edea3]/10 text-[#4edea3] border border-[#4edea3]/30"
+                          ? "genuine"
                           : item.prediction === "suspicious"
-                          ? "bg-[#ffb95f]/10 text-[#ffb95f] border border-[#ffb95f]/30"
+                          ? "suspicious"
                           : item.prediction === "fake"
-                          ? "bg-[#93000a]/40 text-[#ffb4ab] border border-[#ffb4ab]/30"
-                          : "bg-[#102034] text-[#8d90a0]"
-                      }`}>
-                        {item.prediction || "COMPLETED"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <Link
-                        href={`/dashboard/certificates/${item.certificate_id}`}
-                        className="p-1 text-[#38bdf8] hover:bg-[#102034] rounded inline-flex items-center gap-1 font-mono text-[11px]"
-                      >
-                        <span>Cockpit</span>
-                        <ExternalLink size={11} />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                          ? "fake"
+                          : "neutral";
+
+                      return (
+                        <TableRow
+                          key={`${item.certificate_id}-${idx}`}
+                          className="hover:bg-slate-50/70 transition-colors"
+                        >
+                          <TableCell className="px-5 py-3.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                            {new Date(item.timestamp).toLocaleString([], {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </TableCell>
+                          <TableCell className="px-5 py-3.5">
+                            <div className="font-medium text-slate-900 truncate max-w-xs">
+                              {item.filename}
+                            </div>
+                            <div className="font-mono text-[10px] text-slate-400 uppercase">
+                              {item.file_type}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-5 py-3.5 font-mono text-xs text-indigo-700 font-medium">
+                            {item.document_type || "Unclassified"}
+                          </TableCell>
+                          <TableCell className="px-5 py-3.5 font-mono text-xs">
+                            {item.trust_score != null ? (
+                              <span
+                                className={
+                                  item.trust_score >= 70
+                                    ? "text-emerald-700 font-semibold"
+                                    : item.trust_score >= 40
+                                    ? "text-amber-700 font-semibold"
+                                    : "text-rose-700 font-semibold"
+                                }
+                              >
+                                {Math.round(item.trust_score)} / 100
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="px-5 py-3.5 whitespace-nowrap">
+                            <Badge variant={verdictVariant} size="sm">
+                              {item.prediction || "COMPLETED"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              <button
+                                onClick={() => handleDownloadReport(item.certificate_id)}
+                                disabled={downloadingId === item.certificate_id}
+                                title="Download Verification Report"
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                              >
+                                <Download size={13} />
+                              </button>
+                              <Link
+                                href={`/dashboard/certificates/${item.certificate_id}`}
+                                className="px-2.5 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-medium rounded inline-flex items-center gap-1 transition-colors"
+                              >
+                                <span>Cockpit</span>
+                                <ExternalLink size={12} />
+                              </Link>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      variant="ghost"
+                      size="sm"
+                      icon={<ChevronLeft size={14} />}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      variant="ghost"
+                      size="sm"
+                      icon={<ChevronRight size={14} />}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
