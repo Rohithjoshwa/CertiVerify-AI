@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Upload, RefreshCw, ShieldCheck, User } from "lucide-react";
+import { Upload, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface DashboardHeaderProps {
@@ -13,26 +13,25 @@ interface DashboardHeaderProps {
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-  userName = "Analyst",
   userRole = "STUDENT",
   onRefresh,
   refreshing,
 }) => {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#1b2b3f]">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono text-[10px] text-[#2563eb] bg-[#2563eb]/10 border border-[#2563eb]/30 px-2 py-0.5 rounded-[2px] font-bold uppercase tracking-wider">
+          <span className="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
             Forensic Telemetry
           </span>
-          <span className="font-mono text-[10px] text-[#8d90a0]">
+          <span className="text-[11px] text-slate-500 font-medium">
             ROLE: {userRole.toUpperCase()}
           </span>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#d3e4fe] tracking-tight font-sans">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           Authenticity & Fraud Detection Console
         </h1>
-        <p className="text-xs sm:text-sm text-[#8d90a0] mt-0.5 max-w-2xl leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5 max-w-2xl leading-relaxed">
           Real-time cryptographic hashing, neural OCR extraction, and multi-vector forgery detection telemetry.
         </p>
       </div>
@@ -57,3 +56,4 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     </div>
   );
 };
+

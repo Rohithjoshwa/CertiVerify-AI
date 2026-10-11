@@ -11,37 +11,37 @@ export const ForensicQuickInspect: React.FC = () => {
       description: "Verify a new document",
       href: "/dashboard/upload",
       icon: Upload,
-      color: "text-[#38bdf8]",
+      color: "text-indigo-600",
     },
     {
       title: "Deep Document Analysis",
       description: "Deep document analysis",
       href: "/dashboard/certificates",
       icon: ScanLine,
-      color: "text-[#2563eb]",
+      color: "text-blue-600",
     },
     {
       title: "Bulk Upload",
       description: "Upload multiple files",
       href: "/dashboard/upload",
       icon: Layers,
-      color: "text-[#4edea3]",
+      color: "text-emerald-600",
     },
     {
       title: "View Reports",
       description: "Generate reports",
-      href: "/dashboard/certificates",
+      href: "/dashboard/reports",
       icon: FileText,
-      color: "text-[#ffb95f]",
+      color: "text-amber-600",
     },
   ];
 
   return (
-    <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-4">
-      <div className="flex items-center justify-between border-b border-[#1b2b3f] pb-3">
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
-          <h3 className="text-sm font-semibold text-[#d3e4fe]">Quick Actions</h3>
-          <p className="text-xs text-[#8d90a0]">Common tasks to get started</p>
+          <h3 className="text-sm font-semibold text-slate-900">Quick Actions</h3>
+          <p className="text-xs text-slate-500">Common tasks to get started</p>
         </div>
       </div>
 
@@ -52,19 +52,19 @@ export const ForensicQuickInspect: React.FC = () => {
             <Link
               key={action.title}
               href={action.href}
-              className="p-3.5 bg-[#000f21] border border-[#1b2b3f] hover:border-[#2563eb]/50 rounded-[6px] transition-all duration-150 hover:bg-[#102034] group flex flex-col justify-between"
+              className="p-3.5 bg-slate-50 border border-slate-200 hover:border-indigo-500 rounded-lg transition-all duration-150 hover:bg-white hover:shadow-sm group flex flex-col justify-between"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="p-2 rounded-[4px] bg-[#102034] border border-[#1b2b3f] text-[#d3e4fe]">
+                <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 shadow-xs">
                   <Icon size={16} className={action.color} />
                 </div>
-                <ArrowRight size={13} className="text-[#8d90a0] group-hover:text-[#38bdf8] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight size={13} className="text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
               </div>
               <div>
-                <h4 className="text-xs font-semibold text-[#d3e4fe] group-hover:text-[#38bdf8] transition-colors mb-0.5 font-sans">
+                <h4 className="text-xs font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors mb-0.5">
                   {action.title}
                 </h4>
-                <p className="text-[11px] text-[#8d90a0] leading-snug">
+                <p className="text-[11px] text-slate-500 leading-snug">
                   {action.description}
                 </p>
               </div>
@@ -75,3 +75,4 @@ export const ForensicQuickInspect: React.FC = () => {
     </div>
   );
 };
+

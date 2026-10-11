@@ -32,20 +32,20 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   };
 
   const variantStyles = {
-    brand: "bg-[#2563eb] shadow-sm shadow-[#2563eb]/50",
-    emerald: "bg-[#4edea3] shadow-sm shadow-[#4edea3]/50",
-    amber: "bg-[#ffb95f] shadow-sm shadow-[#ffb95f]/50",
-    rose: "bg-[#ffb4ab] shadow-sm shadow-[#ffb4ab]/50",
-    gradient: "bg-gradient-to-r from-[#2563eb] via-[#38bdf8] to-[#4edea3]",
+    brand: "bg-indigo-600",
+    emerald: "bg-emerald-500",
+    amber: "bg-amber-500",
+    rose: "bg-rose-500",
+    gradient: "bg-gradient-to-r from-indigo-600 via-blue-500 to-emerald-500",
   };
 
   return (
     <div className="w-full space-y-1.5" {...props}>
       {(showLabel || label) && (
         <div className="flex justify-between items-center text-xs">
-          <span className="text-[#c3c6d7] font-medium">{label}</span>
+          <span className="text-slate-600 font-medium">{label}</span>
           {showLabel && (
-            <span className="font-mono text-[#d3e4fe] font-semibold">
+            <span className="font-mono text-slate-900 font-semibold">
               {Math.round(percentage)}%
             </span>
           )}
@@ -53,7 +53,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       )}
       <div
         className={cn(
-          "w-full bg-[#000f21] rounded-[2px] overflow-hidden border border-[#1b2b3f]",
+          "w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/60",
           sizeStyles[size],
           className
         )}
@@ -61,7 +61,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         {indeterminate ? (
           <div
             className={cn(
-              "h-full w-2/5 rounded-[2px]",
+              "h-full w-2/5 rounded-full",
               variantStyles[variant]
             )}
             style={{
@@ -70,7 +70,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           />
         ) : (
           <div
-            className={cn("h-full rounded-[2px] transition-all duration-300 ease-out", variantStyles[variant])}
+            className={cn("h-full rounded-full transition-all duration-300 ease-out", variantStyles[variant])}
             style={{ width: `${percentage}%` }}
           />
         )}
@@ -78,3 +78,4 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     </div>
   );
 };
+

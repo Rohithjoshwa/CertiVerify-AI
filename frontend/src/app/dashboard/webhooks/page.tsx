@@ -10,9 +10,7 @@ import {
   Trash2,
   Play,
   History,
-  CheckCircle2,
   AlertTriangle,
-  Loader2,
   Copy,
   Check,
   X,
@@ -24,6 +22,12 @@ import {
   WebhookResponse,
   WebhookDeliveryResponse,
 } from "@/lib/api";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function WebhooksPage() {
   const router = useRouter();
@@ -74,11 +78,12 @@ export default function WebhooksPage() {
     try {
       const { data } = await webhookApi.list();
       setWebhooks(data);
-    } catch (err: any) {
-      if (err?.response?.status === 403) {
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { status?: number; data?: { detail?: string } } };
+      if (apiErr?.response?.status === 403) {
         setPermissionDenied(true);
       } else {
-        setError(err?.response?.data?.detail || "Failed to load webhooks.");
+        setError(apiErr?.response?.data?.detail || "Failed to load webhooks.");
       }
     } finally {
       setLoading(false);
@@ -102,8 +107,9 @@ export default function WebhooksPage() {
       setEndpointUrl("");
       setCreatedWebhook(data); // Shows secret ONCE!
       await fetchWebhooks();
-    } catch (err: any) {
-      alert(err?.response?.data?.detail || "Failed to register webhook endpoint.");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { detail?: string } } };
+      alert(apiErr?.response?.data?.detail || "Failed to register webhook endpoint.");
     } finally {
       setCreating(false);
     }
@@ -117,8 +123,9 @@ export default function WebhooksPage() {
       if (selectedWebhookId === webhookId) {
         handleViewDeliveries(webhookId);
       }
-    } catch (err: any) {
-      alert(err?.response?.data?.detail || "Test delivery failed.");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { detail?: string } } };
+      alert(apiErr?.response?.data?.detail || "Test delivery failed.");
     } finally {
       setTestingId(null);
     }
@@ -157,239 +164,275 @@ export default function WebhooksPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b1c30] border border-[#1b2b3f] p-5 rounded-[8px]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-[#8d90a0] mb-1">
-            <Link href="/dashboard" className="hover:text-[#d3e4fe]">Dashboard</Link>
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400 mb-1.5">
+            <Link href="/dashboard" className="hover:text-indigo-600 transition-colors">
+              Dashboard
+            </Link>
             <span>/</span>
-            <span className="text-[#38bdf8]">Webhooks</span>
+            <span className="text-indigo-600 font-semibold">Webhooks</span>
           </div>
-          <h1 className="text-xl font-bold text-[#d3e4fe] font-sans flex items-center gap-2">
-            <Webhook size={22} className="text-[#38bdf8]" />
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+            <Webhook size={22} className="text-indigo-600" />
             Enterprise Webhook Notifications Engine
           </h1>
-          <p className="text-xs text-[#8d90a0]">
+          <p className="text-xs text-slate-500 mt-1">
             Configure HTTP POST endpoints to receive real-time cryptographic verification events and fraud alerts.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2563eb] text-white text-xs font-semibold rounded hover:bg-blue-600 transition"
+            variant="primary"
+            size="sm"
+            icon={<Plus size={14} />}
           >
-            <Plus size={14} />
-            <span>Register Webhook</span>
-          </button>
-          <button
+            Register Webhook
+          </Button>
+          <Button
             onClick={fetchWebhooks}
-            className="p-2 bg-[#000f21] text-[#8d90a0] hover:text-[#d3e4fe] border border-[#1b2b3f] rounded"
+            variant="ghost"
+            size="sm"
+            aria-label="Refresh webhooks"
+            title="Refresh webhooks"
           >
             <RefreshCw size={14} />
-          </button>
+          </Button>
         </div>
       </div>
 
       {permissionDenied ? (
-        <div className="p-10 bg-[#0b1c30] border border-[#ffb4ab]/30 rounded-[8px] text-center space-y-3">
-          <Lock size={36} className="text-[#ffb4ab] mx-auto" />
-          <h2 className="text-base font-bold text-[#d3e4fe]">Access Restricted: Permission Denied</h2>
-          <p className="text-xs text-[#8d90a0] max-w-md mx-auto">
-            Configuring webhooks requires the <code className="text-[#38bdf8] font-mono">webhook:manage</code> permission scope. Please contact your organization owner or administrator.
-          </p>
-        </div>
+        <Card className="border-rose-200 bg-rose-50/40 text-center p-8">
+          <CardContent className="space-y-3">
+            <Lock size={36} className="text-rose-600 mx-auto" />
+            <h2 className="text-base font-bold text-slate-900">Access Restricted: Permission Denied</h2>
+            <p className="text-xs text-slate-600 max-w-md mx-auto">
+              Configuring webhooks requires the <code className="text-indigo-600 font-mono font-semibold">webhook:manage</code> permission scope. Please contact your organization owner or administrator.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Webhook Endpoints List (7 cols) */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] overflow-hidden">
-            {loading ? (
-              <div className="py-20 text-center space-y-2">
-                <Loader2 size={24} className="animate-spin text-[#38bdf8] mx-auto" />
-                <p className="text-xs font-mono text-[#8d90a0]">Querying webhook endpoints...</p>
-              </div>
-            ) : error ? (
-              <div className="p-8 text-center text-xs text-[#ffb4ab]">
-                <AlertTriangle size={24} className="mx-auto mb-2" />
-                <p>{error}</p>
-              </div>
-            ) : webhooks.length === 0 ? (
-              <div className="py-16 text-center space-y-3">
-                <Webhook size={36} className="text-[#8d90a0] mx-auto opacity-50" />
-                <h3 className="text-sm font-semibold text-[#d3e4fe]">No Webhooks Configured</h3>
-                <p className="text-xs text-[#8d90a0] max-w-sm mx-auto">
-                  Register a target endpoint URL to receive automated callbacks when verification jobs finish.
-                </p>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-4 py-2 bg-[#2563eb] text-white text-xs font-semibold rounded inline-block"
-                >
-                  Register First Webhook
-                </button>
-              </div>
-            ) : (
-              <div className="divide-y divide-[#1b2b3f]">
-                {webhooks.map((ep) => (
-                  <div key={ep.id} className="p-4 space-y-3 hover:bg-[#102034]/40 transition">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
-                              ep.active
-                                ? "bg-[#4edea3]/10 text-[#4edea3] border border-[#4edea3]/30"
-                                : "bg-[#102034] text-[#8d90a0]"
-                            }`}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Webhook Endpoints List (7 cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            <Card>
+              <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold text-slate-900">Registered Endpoints</CardTitle>
+                  <CardDescription className="text-xs text-slate-500">
+                    HTTP callback URLs for event telemetry.
+                  </CardDescription>
+                </div>
+                <span className="text-xs font-mono text-slate-500">
+                  Total: {webhooks.length}
+                </span>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="p-6 space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : error ? (
+                  <div className="p-8 text-center text-xs text-rose-600 space-y-2">
+                    <AlertTriangle size={24} className="mx-auto" />
+                    <p>{error}</p>
+                    <Button onClick={fetchWebhooks} variant="primary" size="sm" className="mt-2">
+                      Retry Loading
+                    </Button>
+                  </div>
+                ) : webhooks.length === 0 ? (
+                  <div className="p-10">
+                    <EmptyState
+                      icon={<Webhook size={32} className="text-slate-400" />}
+                      title="No Webhooks Configured"
+                      description="Register a target endpoint URL to receive automated callbacks when verification jobs finish."
+                      action={
+                        <Button onClick={() => setShowCreateModal(true)} variant="primary" size="sm">
+                          Register First Webhook
+                        </Button>
+                      }
+                    />
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {webhooks.map((ep) => (
+                      <div key={ep.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={ep.active ? "genuine" : "neutral"} size="sm">
+                                {ep.active ? "ACTIVE" : "INACTIVE"}
+                              </Badge>
+                              <span className="font-mono text-xs font-bold text-slate-900 break-all">
+                                {ep.endpoint_url}
+                              </span>
+                            </div>
+                            <div className="text-[11px] font-mono text-slate-400">
+                              ID: {ep.id} | Registered: {new Date(ep.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={() => handleDeleteWebhook(ep.id)}
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Delete Webhook"
+                            title="Delete Webhook"
+                            className="text-slate-400 hover:text-rose-600"
                           >
-                            {ep.active ? "ACTIVE" : "INACTIVE"}
-                          </span>
-                          <span className="font-mono text-xs font-bold text-[#d3e4fe] break-all">
-                            {ep.endpoint_url}
-                          </span>
+                            <Trash2 size={14} />
+                          </Button>
                         </div>
-                        <div className="text-[10px] font-mono text-[#8d90a0]">
-                          ID: {ep.id} | Registered: {new Date(ep.created_at).toLocaleDateString()}
+
+                        {/* Subscribed Events Tags */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {ep.subscribed_events.map((evt) => (
+                            <span
+                              key={evt}
+                              className="font-mono text-[10px] px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded"
+                            >
+                              {evt}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Action Controls */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 font-mono text-xs">
+                          <Button
+                            onClick={() => handleTestDelivery(ep.id)}
+                            disabled={testingId === ep.id}
+                            loading={testingId === ep.id}
+                            variant="secondary"
+                            size="sm"
+                            icon={<Play size={11} />}
+                          >
+                            Test Ping
+                          </Button>
+
+                          <Button
+                            onClick={() => handleViewDeliveries(ep.id)}
+                            variant="ghost"
+                            size="sm"
+                            icon={<History size={11} />}
+                          >
+                            Delivery Log
+                          </Button>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                      <button
-                        onClick={() => handleDeleteWebhook(ep.id)}
-                        className="p-1 text-[#8d90a0] hover:text-[#ffb4ab] rounded"
-                        title="Delete Webhook"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+          {/* Right Column: Delivery Logs Panel (5 cols) */}
+          <div className="lg:col-span-5">
+            {selectedWebhookId ? (
+              <Card className="sticky top-20">
+                <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block font-semibold">
+                      DELIVERY LOG STREAM
+                    </span>
+                    <CardTitle className="text-xs font-mono font-bold text-slate-900 mt-0.5">
+                      Webhook {selectedWebhookId.slice(0, 12)}…
+                    </CardTitle>
+                  </div>
+                  <Button
+                    onClick={() => setSelectedWebhookId(null)}
+                    variant="ghost"
+                    size="sm"
+                    className="p-1 h-auto"
+                  >
+                    <X size={14} />
+                  </Button>
+                </CardHeader>
 
-                    {/* Subscribed Events Tags */}
-                    <div className="flex flex-wrap gap-1">
-                      {ep.subscribed_events.map((evt) => (
-                        <span
-                          key={evt}
-                          className="font-mono text-[9px] px-1.5 py-0.5 bg-[#000f21] text-[#38bdf8] border border-[#1b2b3f] rounded"
-                        >
-                          {evt}
-                        </span>
+                <CardContent className="p-4">
+                  {loadingDeliveries ? (
+                    <div className="p-8 space-y-3">
+                      {[...Array(3)].map((_, i) => (
+                        <Skeleton key={i} className="h-16 w-full rounded-lg" />
                       ))}
                     </div>
-
-                    {/* Action Controls */}
-                    <div className="flex items-center gap-2 pt-1 border-t border-[#1b2b3f]/60 font-mono text-xs">
-                      <button
-                        onClick={() => handleTestDelivery(ep.id)}
-                        disabled={testingId === ep.id}
-                        className="px-2.5 py-1 bg-[#102034] hover:bg-[#1b2b3f] text-[#38bdf8] rounded border border-[#1b2b3f] inline-flex items-center gap-1 disabled:opacity-50"
-                      >
-                        {testingId === ep.id ? (
-                          <Loader2 size={11} className="animate-spin" />
-                        ) : (
-                          <Play size={11} />
-                        )}
-                        <span>Test Ping</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleViewDeliveries(ep.id)}
-                        className="px-2.5 py-1 bg-[#000f21] hover:bg-[#102034] text-[#8d90a0] hover:text-[#d3e4fe] rounded border border-[#1b2b3f] inline-flex items-center gap-1"
-                      >
-                        <History size={11} />
-                        <span>Delivery Log</span>
-                      </button>
+                  ) : deliveries.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-slate-400">
+                      No delivery attempts recorded yet for this webhook.
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                      {deliveries.map((del) => (
+                        <div
+                          key={del.id}
+                          className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1.5 font-mono"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-indigo-700">{del.event_type}</span>
+                            <Badge
+                              variant={del.status === "DELIVERED" ? "genuine" : "fake"}
+                              size="sm"
+                            >
+                              HTTP {del.response_status || "ERR"} ({del.status})
+                            </Badge>
+                          </div>
+
+                          <div className="text-[10px] text-slate-500">
+                            Attempt #{del.attempt_count} | Sent: {new Date(del.created_at).toLocaleTimeString()}
+                          </div>
+
+                          <pre className="p-2 bg-slate-900 text-slate-200 rounded text-[10px] overflow-x-auto max-h-24">
+                            {JSON.stringify(del.payload, null, 2)}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="text-center p-8">
+                <CardContent>
+                  <p className="text-xs text-slate-500">
+                    Select "Delivery Log" on any webhook to inspect delivery status, response codes, and payload logs.
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
-
-        {/* Right Column: Delivery Logs Panel (5 cols) */}
-        <div className="lg:col-span-5">
-          {selectedWebhookId ? (
-            <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-4 sticky top-20">
-              <div className="flex items-center justify-between pb-2 border-b border-[#1b2b3f]">
-                <div>
-                  <span className="text-[10px] font-mono text-[#8d90a0] uppercase block">DELIVERY LOG STREAM</span>
-                  <div className="text-xs font-mono font-bold text-[#d3e4fe]">Webhook {selectedWebhookId.slice(0, 12)}…</div>
-                </div>
-                <button onClick={() => setSelectedWebhookId(null)} className="text-[#8d90a0] hover:text-white">
-                  <X size={14} />
-                </button>
-              </div>
-
-              {loadingDeliveries ? (
-                <div className="py-12 text-center text-xs font-mono text-[#8d90a0]">
-                  <Loader2 size={20} className="animate-spin text-[#38bdf8] mx-auto mb-2" />
-                  Loading delivery history...
-                </div>
-              ) : deliveries.length === 0 ? (
-                <div className="py-12 text-center text-xs text-[#8d90a0]">
-                  No delivery attempts recorded yet for this webhook.
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                  {deliveries.map((del) => (
-                    <div key={del.id} className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded text-xs space-y-1.5 font-mono">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-[#38bdf8]">{del.event_type}</span>
-                        <span className={`px-1.5 py-0.5 text-[9px] rounded font-bold uppercase ${
-                          del.status === "DELIVERED"
-                            ? "bg-[#4edea3]/10 text-[#4edea3]"
-                            : "bg-[#ffb4ab]/10 text-[#ffb4ab]"
-                        }`}>
-                          HTTP {del.response_status || "ERR"} ({del.status})
-                        </span>
-                      </div>
-
-                      <div className="text-[10px] text-[#8d90a0]">
-                        Attempt #{del.attempt_count} | Sent: {new Date(del.created_at).toLocaleTimeString()}
-                      </div>
-
-                      <pre className="p-2 bg-[#0b1c30] rounded text-[9px] text-[#8d90a0] overflow-x-auto max-h-24">
-                        {JSON.stringify(del.payload, null, 2)}
-                      </pre>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-8 text-center text-xs text-[#8d90a0]">
-              Select "Delivery Log" on any webhook to inspect delivery status, response codes, and payload logs.
-            </div>
-          )}
-        </div>
-      </div>
       )}
 
       {/* Register Webhook Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0b1c30] border border-[#1b2b3f] w-full max-w-md rounded-[8px] p-6 space-y-4">
-            <h2 className="text-base font-bold text-[#d3e4fe]">Register Webhook Endpoint</h2>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 w-full max-w-md rounded-xl p-6 space-y-4 shadow-xl">
+            <h2 className="text-base font-bold text-slate-900">Register Webhook Endpoint</h2>
             <form onSubmit={handleRegisterWebhook} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-mono text-[#8d90a0]">Endpoint URL (HTTPS)</label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://api.yourdomain.com/webhooks/certiverify"
-                  value={endpointUrl}
-                  onChange={(e) => setEndpointUrl(e.target.value)}
-                  className="w-full bg-[#000f21] border border-[#1b2b3f] text-[#d3e4fe] text-xs px-3 py-2 rounded focus:outline-none focus:border-[#38bdf8]"
-                />
-              </div>
+              <Input
+                label="Endpoint URL (HTTPS)"
+                type="url"
+                required
+                placeholder="https://api.yourdomain.com/webhooks/certiverify"
+                value={endpointUrl}
+                onChange={(e) => setEndpointUrl(e.target.value)}
+              />
 
               <div className="space-y-2">
-                <label className="text-xs font-mono text-[#8d90a0] block">Subscribed Events</label>
+                <label className="text-xs font-semibold text-slate-700 block">Subscribed Events</label>
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                   {ALL_EVENTS.map((evt) => (
-                    <label key={evt} className="flex items-center gap-2 text-xs text-[#c3c6d7] cursor-pointer">
+                    <label key={evt} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedEvents.includes(evt)}
                         onChange={() => handleToggleEvent(evt)}
-                        className="rounded border-[#1b2b3f] bg-[#000f21]"
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
                       />
                       <span className="font-mono text-[11px]">{evt}</span>
                     </label>
@@ -398,20 +441,23 @@ export default function WebhooksPage() {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 text-xs text-[#8d90a0] hover:text-white"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="sm"
                   disabled={creating}
-                  className="px-4 py-1.5 bg-[#2563eb] text-white text-xs font-semibold rounded hover:bg-blue-600 disabled:opacity-50"
+                  loading={creating}
                 >
                   {creating ? "Registering..." : "Register Endpoint"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -420,47 +466,50 @@ export default function WebhooksPage() {
 
       {/* One-Time Webhook Secret Modal */}
       {createdWebhook?.secret && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0b1c30] border border-[#4edea3]/40 w-full max-w-lg rounded-[8px] p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-2 text-[#4edea3] font-bold text-sm font-mono">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-emerald-200 w-full max-w-lg rounded-xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm font-mono">
               <Lock size={16} />
               <span>WEBHOOK SECRET GENERATED</span>
             </div>
 
-            <p className="text-xs text-[#8d90a0]">
+            <p className="text-xs text-slate-600">
               This HMAC secret is used to sign webhook POST signatures. Save it now as it will <strong>NEVER be shown again</strong>.
             </p>
 
             <div className="space-y-1 font-mono text-xs">
-              <label className="text-[10px] text-[#8d90a0] uppercase block">HMAC Secret</label>
+              <label className="text-[11px] text-slate-500 uppercase font-semibold block">HMAC Secret</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={createdWebhook.secret}
-                  className="w-full bg-[#000f21] border border-[#4edea3]/40 text-[#4edea3] font-mono text-xs p-2.5 rounded font-semibold select-all"
+                  className="w-full bg-slate-50 border border-emerald-300 text-emerald-800 font-mono text-xs p-2.5 rounded-lg font-semibold select-all focus:outline-none"
                 />
-                <button
+                <Button
                   onClick={() => {
                     navigator.clipboard.writeText(createdWebhook.secret!);
                     setCopiedSecret(true);
                     setTimeout(() => setCopiedSecret(false), 2000);
                   }}
-                  className="px-3 py-2.5 bg-[#4edea3] text-[#000f21] font-bold text-xs rounded hover:bg-emerald-400 flex items-center gap-1 shrink-0"
+                  variant="primary"
+                  size="sm"
+                  icon={copiedSecret ? <Check size={14} /> : <Copy size={14} />}
+                  className="shrink-0"
                 >
-                  {copiedSecret ? <Check size={14} /> : <Copy size={14} />}
-                  <span>{copiedSecret ? "Copied" : "Copy"}</span>
-                </button>
+                  {copiedSecret ? "Copied" : "Copy"}
+                </Button>
               </div>
             </div>
 
             <div className="pt-2 text-right">
-              <button
+              <Button
                 onClick={() => setCreatedWebhook(null)}
-                className="px-4 py-2 bg-[#102034] hover:bg-[#1b2b3f] text-[#d3e4fe] font-semibold text-xs rounded border border-[#1b2b3f]"
+                variant="secondary"
+                size="sm"
               >
                 Done / Saved Secret
-              </button>
+              </Button>
             </div>
           </div>
         </div>

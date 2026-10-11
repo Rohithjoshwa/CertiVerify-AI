@@ -6,15 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   Cpu,
   RefreshCw,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Loader2,
   ExternalLink,
   Play,
   RotateCcw,
-  FileText,
   FileQuestion,
 } from "lucide-react";
 import {
@@ -24,6 +18,19 @@ import {
   CertificateResponse,
   VerificationJobResponse,
 } from "@/lib/api";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from "@/components/ui/Table";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function VerificationJobsPage() {
   const router = useRouter();
@@ -71,7 +78,7 @@ export default function VerificationJobsPage() {
     try {
       await jobsApi.startVerificationJob(certId);
       await fetchJobs();
-    } catch (err) {
+    } catch {
       alert("Failed to start async verification job.");
     } finally {
       setActionJobId(null);
@@ -83,7 +90,7 @@ export default function VerificationJobsPage() {
     try {
       await jobsApi.retryJob(jobId);
       await fetchJobs();
-    } catch (err) {
+    } catch {
       alert("Failed to retry verification job.");
     } finally {
       setActionJobId(null);
@@ -92,145 +99,181 @@ export default function VerificationJobsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b1c30] border border-[#1b2b3f] p-5 rounded-[8px]">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-[#8d90a0] mb-1">
-            <Link href="/dashboard" className="hover:text-[#d3e4fe]">Dashboard</Link>
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400 mb-1.5">
+            <Link href="/dashboard" className="hover:text-indigo-600 transition-colors">
+              Dashboard
+            </Link>
             <span>/</span>
-            <span className="text-[#38bdf8]">Verification Jobs</span>
+            <span className="text-indigo-600 font-semibold">Verification Jobs</span>
           </div>
-          <h1 className="text-xl font-bold text-[#d3e4fe] font-sans flex items-center gap-2">
-            <Cpu size={22} className="text-[#38bdf8]" />
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+            <Cpu size={22} className="text-indigo-600" />
             Async Verification Job Execution Queue
           </h1>
-          <p className="text-xs text-[#8d90a0]">
+          <p className="text-xs text-slate-500 mt-1">
             Monitor multi-stage asynchronous verification pipelines across ingested credentials.
           </p>
         </div>
 
-        <button
+        <Button
           onClick={fetchJobs}
-          className="p-2 bg-[#000f21] hover:bg-[#102034] text-[#8d90a0] hover:text-[#d3e4fe] border border-[#1b2b3f] rounded shrink-0"
+          variant="ghost"
+          size="sm"
+          aria-label="Refresh jobs status"
           title="Refresh jobs status"
         >
           <RefreshCw size={14} />
-        </button>
+        </Button>
       </div>
 
       {/* Main Jobs Table */}
-      <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] overflow-hidden">
-        {loading ? (
-          <div className="py-20 text-center space-y-2">
-            <Loader2 size={24} className="animate-spin text-[#38bdf8] mx-auto" />
-            <p className="text-xs font-mono text-[#8d90a0]">Querying job queue statuses...</p>
+      <Card>
+        <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-semibold text-slate-900">Pipeline Jobs</CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Background job processing telemetry.
+            </CardDescription>
           </div>
-        ) : certificates.length === 0 ? (
-          <div className="py-16 text-center space-y-3">
-            <FileQuestion size={36} className="text-[#8d90a0] mx-auto opacity-50" />
-            <p className="text-xs text-[#8d90a0]">No certificates or verification jobs in queue.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-[#000f21] text-[#8d90a0] border-b border-[#1b2b3f] font-mono text-[10px] uppercase">
-                <tr>
-                  <th className="px-4 py-3">Certificate / Job ID</th>
-                  <th className="px-4 py-3">Job Status</th>
-                  <th className="px-4 py-3">Current Stage</th>
-                  <th className="px-4 py-3">Progress</th>
-                  <th className="px-4 py-3">Created / Completed</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1b2b3f]">
-                {certificates.map((cert) => {
-                  const job = jobs[cert.id];
-                  const status = job?.status || "NOT_STARTED";
-                  const isProcessing = status === "PROCESSING" || status === "QUEUED";
-                  const isActioning = Boolean(actionJobId === cert.id || (job?.id && actionJobId === job.id));
+          <span className="text-xs font-mono text-slate-500">
+            Total Certificates: {certificates.length}
+          </span>
+        </CardHeader>
 
-                  return (
-                    <tr key={cert.id} className="hover:bg-[#102034]/60 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-[#d3e4fe] truncate max-w-xs">{cert.original_filename}</div>
-                        <div className="font-mono text-[10px] text-[#8d90a0]">
-                          Job: {job?.job_id || job?.id || "None"}
-                        </div>
-                      </td>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : certificates.length === 0 ? (
+            <div className="p-10">
+              <EmptyState
+                icon={<FileQuestion size={32} className="text-slate-400" />}
+                title="No verification jobs in queue"
+                description="Upload certificates to begin background queue execution."
+                action={
+                  <Link href="/dashboard/upload">
+                    <Button variant="primary" size="sm">
+                      Upload Certificate
+                    </Button>
+                  </Link>
+                }
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50 text-slate-500 font-mono text-[10px] uppercase">
+                    <TableHead className="px-5 py-3">Certificate / Job ID</TableHead>
+                    <TableHead className="px-5 py-3">Job Status</TableHead>
+                    <TableHead className="px-5 py-3">Current Stage</TableHead>
+                    <TableHead className="px-5 py-3">Progress</TableHead>
+                    <TableHead className="px-5 py-3">Created / Completed</TableHead>
+                    <TableHead className="px-5 py-3 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {certificates.map((cert) => {
+                    const job = jobs[cert.id];
+                    const status = job?.status || "NOT_STARTED";
+                    const isActioning = Boolean(actionJobId === cert.id || (job?.id && actionJobId === job.id));
 
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`font-mono text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                          status === "COMPLETED"
-                            ? "bg-[#4edea3]/10 text-[#4edea3] border border-[#4edea3]/30"
-                            : status === "PROCESSING"
-                            ? "bg-[#38bdf8]/10 text-[#38bdf8] border border-[#38bdf8]/30 animate-pulse"
-                            : status === "FAILED"
-                            ? "bg-[#93000a]/40 text-[#ffb4ab] border border-[#ffb4ab]/30"
-                            : "bg-[#102034] text-[#8d90a0]"
-                        }`}>
-                          {status}
-                        </span>
-                      </td>
+                    const badgeVariant =
+                      status === "COMPLETED"
+                        ? "genuine"
+                        : status === "PROCESSING" || status === "QUEUED"
+                        ? "suspicious"
+                        : status === "FAILED"
+                        ? "fake"
+                        : "neutral";
 
-                      <td className="px-4 py-3 font-mono text-[11px] text-[#38bdf8]">
-                        {job?.current_stage || "Ready"}
-                      </td>
-
-                      <td className="px-4 py-3 font-mono text-[11px]">
-                        <div className="flex items-center gap-2 max-w-[120px]">
-                          <div className="h-1.5 flex-1 bg-[#000f21] rounded-full overflow-hidden border border-[#1b2b3f]">
-                            <div
-                              style={{ width: `${job?.progress_percentage ?? 0}%` }}
-                              className="bg-[#38bdf8] h-full"
-                            />
+                    return (
+                      <TableRow key={cert.id} className="hover:bg-slate-50/70 transition-colors">
+                        <TableCell className="px-5 py-3.5">
+                          <div className="font-semibold text-slate-900 truncate max-w-xs">
+                            {cert.original_filename}
                           </div>
-                          <span className="text-[#8d90a0]">{job?.progress_percentage ?? 0}%</span>
-                        </div>
-                      </td>
+                          <div className="font-mono text-[10px] text-slate-400">
+                            Job: {job?.job_id || job?.id || "None"}
+                          </div>
+                        </TableCell>
 
-                      <td className="px-4 py-3 font-mono text-[10px] text-[#8d90a0] whitespace-nowrap">
-                        {job?.created_at ? new Date(job.created_at).toLocaleString() : "Not triggered"}
-                      </td>
+                        <TableCell className="px-5 py-3.5 whitespace-nowrap">
+                          <Badge variant={badgeVariant} size="sm">
+                            {status}
+                          </Badge>
+                        </TableCell>
 
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-2">
-                          {!job || status === "NOT_STARTED" ? (
-                            <button
-                              onClick={() => handleStartJob(cert.id)}
-                              disabled={isActioning}
-                              className="px-2.5 py-1 text-[11px] font-semibold bg-[#2563eb] text-white rounded hover:bg-blue-600 inline-flex items-center gap-1 disabled:opacity-50"
+                        <TableCell className="px-5 py-3.5 font-mono text-xs text-indigo-700 font-medium">
+                          {job?.current_stage || "Ready"}
+                        </TableCell>
+
+                        <TableCell className="px-5 py-3.5 font-mono text-xs">
+                          <div className="flex items-center gap-2 max-w-[140px]">
+                            <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                              <div
+                                style={{ width: `${job?.progress_percentage ?? 0}%` }}
+                                className="bg-indigo-600 h-full transition-all"
+                              />
+                            </div>
+                            <span className="text-slate-600 font-semibold">{job?.progress_percentage ?? 0}%</span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="px-5 py-3.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          {job?.created_at ? new Date(job.created_at).toLocaleString() : "Not triggered"}
+                        </TableCell>
+
+                        <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            {!job || status === "NOT_STARTED" ? (
+                              <Button
+                                onClick={() => handleStartJob(cert.id)}
+                                disabled={isActioning}
+                                loading={isActioning}
+                                variant="primary"
+                                size="sm"
+                                icon={<Play size={11} />}
+                              >
+                                Start Job
+                              </Button>
+                            ) : status === "FAILED" ? (
+                              <Button
+                                onClick={() => handleRetryJob(job.id)}
+                                disabled={isActioning}
+                                loading={isActioning}
+                                variant="secondary"
+                                size="sm"
+                                icon={<RotateCcw size={11} />}
+                              >
+                                Retry
+                              </Button>
+                            ) : null}
+
+                            <Link
+                              href={`/dashboard/certificates/${cert.id}`}
+                              className="p-1.5 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors"
+                              title="Open Cockpit"
                             >
-                              {isActioning ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />}
-                              <span>Start Job</span>
-                            </button>
-                          ) : status === "FAILED" ? (
-                            <button
-                              onClick={() => handleRetryJob(job.id)}
-                              disabled={isActioning}
-                              className="px-2.5 py-1 text-[11px] font-semibold bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/30 rounded hover:bg-[#ffb95f]/30 inline-flex items-center gap-1 disabled:opacity-50"
-                            >
-                              {isActioning ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
-                              <span>Retry</span>
-                            </button>
-                          ) : null}
-
-                          <Link
-                            href={`/dashboard/certificates/${cert.id}`}
-                            className="p-1 text-[#38bdf8] hover:bg-[#102034] rounded"
-                            title="Open Cockpit"
-                          >
-                            <ExternalLink size={12} />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                              <ExternalLink size={14} />
+                            </Link>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

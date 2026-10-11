@@ -21,50 +21,46 @@ export const KpiGrid: React.FC<KpiGridProps> = ({
     {
       label: "TOTAL CERTIFICATES",
       value: totalCertificates,
-      unit: "documents",
       description: "All certificates processed",
       pct: totalCertificates > 0 ? `${totalCertificates} total records` : "No certificates ingested yet",
       icon: FileText,
-      color: "text-[#d3e4fe]",
-      borderAccent: "border-[#1b2b3f]",
+      color: "text-slate-900",
+      iconColor: "text-indigo-600",
       badge: "Registry Active",
-      badgeColor: "text-[#38bdf8] bg-[#2563eb]/10 border-[#2563eb]/30",
+      badgeColor: "text-indigo-700 bg-indigo-50 border-indigo-200",
     },
     {
       label: "GENUINE",
       value: genuine,
-      unit: "verified",
       description: "Verified authentic",
       pct: `${totalCertificates ? Math.round((genuine / totalCertificates) * 100) : 0}% of total`,
       icon: ShieldCheck,
-      color: "text-[#4edea3]",
-      borderAccent: "border-[#4edea3]/30",
+      color: "text-emerald-700",
+      iconColor: "text-emerald-600",
       badge: "Authentic",
-      badgeColor: "text-[#4edea3] bg-[#4edea3]/10 border-[#4edea3]/30",
+      badgeColor: "text-emerald-700 bg-emerald-50 border-emerald-200",
     },
     {
       label: "SUSPICIOUS",
       value: suspicious,
-      unit: "flagged",
       description: "Needs manual review",
       pct: `${totalCertificates ? Math.round((suspicious / totalCertificates) * 100) : 0}% of total`,
       icon: AlertTriangle,
-      color: "text-[#ffb95f]",
-      borderAccent: "border-[#ffb95f]/30",
+      color: "text-amber-700",
+      iconColor: "text-amber-600",
       badge: "Needs Review",
-      badgeColor: "text-[#ffb95f] bg-[#ffb95f]/10 border-[#ffb95f]/30",
+      badgeColor: "text-amber-700 bg-amber-50 border-amber-200",
     },
     {
       label: "FAKE",
       value: fake,
-      unit: "fraudulent",
       description: "Identified as fraudulent",
       pct: `${totalCertificates ? Math.round((fake / totalCertificates) * 100) : 0}% of total`,
       icon: ShieldAlert,
-      color: "text-[#ffb4ab]",
-      borderAccent: "border-[#ffb4ab]/30",
+      color: "text-rose-700",
+      iconColor: "text-rose-600",
       badge: "Fraudulent",
-      badgeColor: "text-[#ffb4ab] bg-[#93000a]/40 border-[#ffb4ab]/30",
+      badgeColor: "text-rose-700 bg-rose-50 border-rose-200",
     },
   ];
 
@@ -75,31 +71,31 @@ export const KpiGrid: React.FC<KpiGridProps> = ({
         return (
           <div
             key={kpi.label}
-            className={`bg-[#0b1c30] border ${kpi.borderAccent} rounded-[8px] p-4 transition-all duration-150 hover:bg-[#0e223a] flex flex-col justify-between`}
+            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:shadow-md flex flex-col justify-between"
           >
             <div className="flex items-start justify-between gap-2 mb-3">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[#8d90a0] font-semibold">
+              <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
                 {kpi.label}
               </span>
               <span
-                className={`font-mono text-[9px] px-1.5 py-0.5 rounded-[2px] font-bold tracking-wider uppercase border ${kpi.badgeColor}`}
+                className={`text-[10px] px-2 py-0.5 rounded-full font-medium tracking-wide uppercase border ${kpi.badgeColor}`}
               >
                 {kpi.badge}
               </span>
             </div>
 
             <div className="mb-2">
-              <span className={`font-mono text-3xl font-bold tracking-tight block ${kpi.color}`}>
+              <span className={`text-3xl font-bold tracking-tight block ${kpi.color}`}>
                 {kpi.value.toLocaleString()}
               </span>
-              <span className="text-[11px] text-[#4edea3] font-mono font-medium block mt-0.5">
+              <span className="text-xs text-slate-500 font-medium block mt-0.5">
                 {kpi.pct}
               </span>
             </div>
 
-            <div className="pt-2 border-t border-[#1b2b3f] flex items-center justify-between text-xs text-[#8d90a0]">
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
               <span className="truncate">{kpi.description}</span>
-              <Icon size={14} className={kpi.color} />
+              <Icon size={16} className={kpi.iconColor} />
             </div>
           </div>
         );
@@ -107,3 +103,4 @@ export const KpiGrid: React.FC<KpiGridProps> = ({
     </div>
   );
 };
+

@@ -3,11 +3,14 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ShieldCheck, ArrowLeft, Loader2, CheckCircle2, XCircle,
+  ArrowLeft, Loader2, CheckCircle2, XCircle,
   HelpCircle, GitCompare, Download, RefreshCw, Sparkles,
   FileText, BarChart3, AlertTriangle, Info,
 } from "lucide-react";
 import { comparisonApi, DocumentComparisonResponse, getAccessToken } from "@/lib/api";
+import { Logo } from "@/components/ui/Logo";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
 // All 8 comparison fields with human-readable labels
 const FIELD_META: Record<string, { label: string; description: string }> = {
@@ -25,8 +28,6 @@ const FIELD_META: Record<string, { label: string; description: string }> = {
 async function downloadComparisonPDF(groupId: string, consistency: number) {
   const token = getAccessToken();
   if (!token) { alert("Please log in first."); return; }
-  // Comparison PDF is generated client-side from the JSON data
-  // (backend doesn't have a comparison-PDF endpoint yet, so we generate a simple text report)
   const content = `CertiVerify AI — Document Comparison Report
 Group ID: ${groupId}
 Consistency Score: ${consistency}%
@@ -125,65 +126,70 @@ export default function GroupComparisonPage() {
   const summary = comparison ? buildAISummary(comparison) : null;
 
   const summaryColors = {
-    consistent:   { border: "border-genuine/30",   bg: "bg-genuine/5",   text: "text-genuine",   icon: <CheckCircle2 size={18} className="text-genuine shrink-0" /> },
-    partial:      { border: "border-suspicious/30", bg: "bg-suspicious/5", text: "text-suspicious", icon: <AlertTriangle size={18} className="text-suspicious shrink-0" /> },
-    inconsistent: { border: "border-fake/30",       bg: "bg-fake/5",      text: "text-fake",      icon: <XCircle size={18} className="text-fake shrink-0" /> },
+    consistent:   { border: "border-emerald-200", bg: "bg-emerald-50/70", text: "text-emerald-800", icon: <CheckCircle2 size={18} className="text-emerald-600 shrink-0" /> },
+    partial:      { border: "border-amber-200",   bg: "bg-amber-50/70",   text: "text-amber-800",   icon: <AlertTriangle size={18} className="text-amber-600 shrink-0" /> },
+    inconsistent: { border: "border-rose-200",    bg: "bg-rose-50/70",    text: "text-rose-800",    icon: <XCircle size={18} className="text-rose-600 shrink-0" /> },
   };
 
   return (
-    <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
+    <main className="min-h-screen px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="text-brand-500" size={28} />
-          <span className="text-xl font-bold text-white">CertiVerify AI</span>
+      <header className="flex items-center justify-between pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <Logo size="md" />
+          <div>
+            <span className="text-lg font-bold text-slate-900 block font-sans">CertiVerify AI</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-600 font-medium">Group Comparison</span>
+          </div>
         </div>
         <button
           onClick={() => router.push("/dashboard/upload")}
-          className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition"
+          className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-indigo-600 font-medium transition"
         >
-          <ArrowLeft size={16} /> Back to uploads
+          <ArrowLeft size={14} /> Back to uploads
         </button>
       </header>
 
       {/* Title */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <GitCompare className="text-genuine" size={24} />
-          Document Comparison
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <GitCompare className="text-indigo-600" size={24} />
+          Multi-Document Cross Comparison
         </h1>
-        <p className="text-gray-400 mt-1 text-sm">
+        <p className="text-slate-500 mt-1 text-xs sm:text-sm">
           AI-powered cross-document field verification — Degree Certificate ↔ Marksheet ↔ Resume
         </p>
-        <p className="text-xs text-gray-600 mt-1 font-mono">Group ID: {groupId}</p>
+        <p className="text-xs text-slate-400 mt-1 font-mono">Group ID: {groupId}</p>
       </div>
 
       {/* Info banner — how it works */}
       {!loading && !comparison && !error && (
-        <div className="glass-panel rounded-xl p-4 mb-6 border border-brand-500/20 flex gap-3">
-          <Info size={16} className="text-brand-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-gray-400 space-y-1">
-            <p className="text-white font-medium text-sm">How document comparison works</p>
-            <p>Our AI extracts text from all documents in this set using OCR, then compares 8 key fields using fuzzy matching to account for minor OCR variations.</p>
-            <p>Fields compared: <span className="text-gray-300">Student Name, Register Number, University, Degree, Department, CGPA, Percentage, Graduation Year.</span></p>
-            <p className="text-suspicious">⚠ Prerequisite: Run OCR extraction on every document in this group first.</p>
-          </div>
-        </div>
+        <Card className="border-indigo-100 bg-indigo-50/40">
+          <CardContent className="p-4 flex gap-3">
+            <Info size={16} className="text-indigo-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-600 space-y-1">
+              <p className="text-slate-900 font-semibold text-sm">How document comparison works</p>
+              <p>Our AI extracts text from all documents in this set using OCR, then compares 8 key fields using fuzzy matching to account for minor OCR variations.</p>
+              <p>Fields compared: <span className="text-slate-800 font-medium">Student Name, Register Number, University, Degree, Department, CGPA, Percentage, Graduation Year.</span></p>
+              <p className="text-amber-700 font-medium">⚠ Prerequisite: Run OCR extraction on every document in this group first.</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {loading && (
         <div className="flex justify-center py-16">
-          <Loader2 className="animate-spin text-brand-500" size={32} />
+          <Loader2 className="animate-spin text-indigo-600" size={32} />
         </div>
       )}
 
       {error && (
-        <div className="mb-4 bg-fake/10 border border-fake/30 text-fake text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3 flex items-start gap-2 shadow-sm">
+          <AlertTriangle size={16} className="shrink-0 mt-0.5 text-rose-600" />
           <div>
-            <p className="font-medium">Comparison failed</p>
-            <p className="text-xs mt-1 text-fake/80">{error}</p>
-            <Link href="/dashboard/upload" className="text-xs text-brand-400 hover:underline mt-2 inline-block">
+            <p className="font-semibold">Comparison failed</p>
+            <p className="text-xs mt-1 text-rose-600">{error}</p>
+            <Link href="/dashboard/upload" className="text-xs text-indigo-600 hover:underline mt-2 inline-block font-semibold">
               Go back and run OCR on each document first →
             </Link>
           </div>
@@ -191,90 +197,104 @@ export default function GroupComparisonPage() {
       )}
 
       {!loading && !comparison && (
-        <div className="glass-panel rounded-xl p-10 text-center">
-          <GitCompare className="mx-auto mb-4 text-genuine opacity-50" size={44} />
-          <p className="text-white font-semibold text-lg mb-1">No comparison run yet</p>
-          <p className="text-sm text-gray-400 mb-6 max-w-sm mx-auto">
-            Run OCR on at least 2 documents in this group, then click the button below to start the AI comparison.
-          </p>
-          <button
-            onClick={handleRun}
-            disabled={running}
-            className="rounded-lg bg-genuine hover:bg-genuine/90 disabled:opacity-60 text-white font-medium px-8 py-3 transition inline-flex items-center gap-2"
-          >
-            {running && <Loader2 size={16} className="animate-spin" />}
-            {running ? "Running AI Comparison…" : "Run Document Comparison"}
-          </button>
-        </div>
+        <Card className="p-10 text-center">
+          <CardContent className="space-y-3">
+            <GitCompare className="mx-auto text-indigo-600 opacity-60" size={44} />
+            <p className="text-slate-900 font-semibold text-base">No comparison run yet</p>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Run OCR on at least 2 documents in this group, then click the button below to start the AI comparison.
+            </p>
+            <Button
+              onClick={handleRun}
+              disabled={running}
+              loading={running}
+              variant="primary"
+              size="md"
+              icon={<GitCompare size={16} />}
+              className="mt-2"
+            >
+              {running ? "Running AI Comparison…" : "Run Document Comparison"}
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {comparison && (
         <>
           {/* Score card */}
-          <div className="glass-panel rounded-2xl p-6 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-5">
-              <ConsistencyRing value={comparison.consistency_percentage} />
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Consistency Score</p>
-                <p className="text-4xl font-bold text-white">{comparison.consistency_percentage}<span className="text-xl text-gray-400">%</span></p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {comparison.matching_fields.length} matching · {comparison.mismatched_fields.length} mismatched · {comparison.missing_fields.length} missing
-                </p>
+          <Card className="p-6">
+            <CardContent className="p-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-5">
+                <ConsistencyRing value={comparison.consistency_percentage} />
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Consistency Score</p>
+                  <p className="text-4xl font-bold text-slate-900 font-mono">
+                    {comparison.consistency_percentage}
+                    <span className="text-xl text-slate-400">%</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">
+                    {comparison.matching_fields.length} matching · {comparison.mismatched_fields.length} mismatched · {comparison.missing_fields.length} missing
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-medium px-5 py-2.5 text-sm transition inline-flex items-center justify-center gap-2"
-              >
-                {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-                {downloading ? "Downloading…" : "Download Report"}
-              </button>
-              <button
-                onClick={handleRun}
-                disabled={running}
-                className="rounded-lg border border-surface-border hover:bg-surface-panel disabled:opacity-60 text-white font-medium px-5 py-2.5 text-sm transition inline-flex items-center justify-center gap-2"
-              >
-                {running ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                {running ? "Re-running…" : "Re-run"}
-              </button>
-            </div>
-          </div>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                <Button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  loading={downloading}
+                  variant="primary"
+                  size="sm"
+                  icon={<Download size={14} />}
+                >
+                  {downloading ? "Downloading…" : "Download Report"}
+                </Button>
+                <Button
+                  onClick={handleRun}
+                  disabled={running}
+                  loading={running}
+                  variant="secondary"
+                  size="sm"
+                  icon={<RefreshCw size={13} />}
+                >
+                  {running ? "Re-running…" : "Re-run"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Field counts */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <div className="glass-panel rounded-xl p-4 text-center border border-genuine/20">
-              <CheckCircle2 className="mx-auto mb-1 text-genuine" size={20} />
-              <p className="text-2xl font-bold text-genuine">{comparison.matching_fields.length}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Matching</p>
-            </div>
-            <div className="glass-panel rounded-xl p-4 text-center border border-fake/20">
-              <XCircle className="mx-auto mb-1 text-fake" size={20} />
-              <p className="text-2xl font-bold text-fake">{comparison.mismatched_fields.length}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Mismatched</p>
-            </div>
-            <div className="glass-panel rounded-xl p-4 text-center border border-gray-700">
-              <HelpCircle className="mx-auto mb-1 text-gray-500" size={20} />
-              <p className="text-2xl font-bold text-gray-400">{comparison.missing_fields.length}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Missing</p>
-            </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="text-center p-4 border-emerald-100">
+              <CheckCircle2 className="mx-auto mb-1 text-emerald-600" size={20} />
+              <p className="text-2xl font-bold text-emerald-700 font-mono">{comparison.matching_fields.length}</p>
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">Matching</p>
+            </Card>
+            <Card className="text-center p-4 border-rose-100">
+              <XCircle className="mx-auto mb-1 text-rose-600" size={20} />
+              <p className="text-2xl font-bold text-rose-700 font-mono">{comparison.mismatched_fields.length}</p>
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">Mismatched</p>
+            </Card>
+            <Card className="text-center p-4">
+              <HelpCircle className="mx-auto mb-1 text-slate-400" size={20} />
+              <p className="text-2xl font-bold text-slate-600 font-mono">{comparison.missing_fields.length}</p>
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">Missing</p>
+            </Card>
           </div>
 
           {/* AI Summary */}
           {summary && (() => {
             const c = summaryColors[summary.verdict];
             return (
-              <div className={`glass-panel rounded-xl p-5 mb-5 border ${c.border} ${c.bg}`}>
+              <div className={`rounded-xl p-5 border ${c.border} ${c.bg} shadow-sm`}>
                 <div className="flex items-start gap-3">
                   {c.icon}
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <Sparkles size={14} className="text-brand-400" />
-                      <span className="text-xs text-brand-400 font-medium uppercase tracking-wide">AI Summary</span>
+                      <Sparkles size={14} className="text-indigo-600" />
+                      <span className="text-xs text-indigo-700 font-bold uppercase tracking-wide">AI Summary</span>
                     </div>
                     <p className={`font-semibold text-sm mb-1.5 ${c.text}`}>{summary.headline}</p>
-                    <p className="text-xs text-gray-300 leading-relaxed">{summary.detail}</p>
+                    <p className="text-xs text-slate-700 leading-relaxed font-sans">{summary.detail}</p>
                   </div>
                 </div>
               </div>
@@ -282,99 +302,103 @@ export default function GroupComparisonPage() {
           })()}
 
           {/* Comparison table */}
-          <div className="glass-panel rounded-2xl overflow-hidden mb-5">
-            <div className="px-5 py-3 border-b border-surface-border flex items-center gap-2">
-              <BarChart3 size={15} className="text-brand-500" />
-              <span className="text-sm font-semibold text-white">Field-by-Field Comparison</span>
-              <span className="text-xs text-gray-500 ml-1">({Object.keys(comparison.details).length} fields checked)</span>
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-surface-panel text-gray-400 text-left text-xs">
-                  <th className="px-5 py-3 font-medium w-40">Field</th>
-                  <th className="px-5 py-3 font-medium">Values Across Documents</th>
-                  <th className="px-5 py-3 font-medium w-36">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(comparison.details).map(([field, detail]) => {
-                  const meta = FIELD_META[field] ?? { label: field, description: "" };
-                  const rowBg =
-                    detail.status === "matching" ? "bg-genuine/5" :
-                    detail.status === "mismatched" ? "bg-fake/5" :
-                    "";
-                  return (
-                    <tr
-                      key={field}
-                      className={`border-t border-surface-border transition ${rowBg}`}
-                    >
-                      <td className="px-5 py-3">
-                        <p className="text-gray-200 font-medium text-xs">{meta.label}</p>
-                        <p className="text-gray-600 text-xs mt-0.5">{meta.description}</p>
-                      </td>
-                      <td className="px-5 py-3">
-                        {detail.values.length === 0 ? (
-                          <span className="text-gray-600 text-xs italic">Not extracted by OCR</span>
-                        ) : detail.values.length === 1 ? (
-                          <span className="text-gray-400 text-xs">{String(detail.values[0])}</span>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {detail.values.map((v, i) => (
-                              <span
-                                key={i}
-                                className={`px-2 py-0.5 rounded text-xs font-mono ${
-                                  detail.status === "matching"
-                                    ? "bg-genuine/15 text-genuine"
-                                    : "bg-fake/15 text-fake"
-                                }`}
-                              >
-                                Doc {i + 1}: {String(v)}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-5 py-3">
-                        <StatusBadge status={detail.status} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Card className="overflow-hidden">
+            <CardHeader className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex flex-row items-center gap-2">
+              <BarChart3 size={15} className="text-indigo-600" />
+              <CardTitle className="text-sm font-semibold text-slate-900">Field-by-Field Comparison</CardTitle>
+              <span className="text-xs text-slate-500 ml-1 font-mono">({Object.keys(comparison.details).length} fields checked)</span>
+            </CardHeader>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 text-left text-xs border-b border-slate-200 font-mono uppercase">
+                    <th className="px-5 py-3 font-medium w-44">Field</th>
+                    <th className="px-5 py-3 font-medium">Values Across Documents</th>
+                    <th className="px-5 py-3 font-medium w-36">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {Object.entries(comparison.details).map(([field, detail]) => {
+                    const meta = FIELD_META[field] ?? { label: field, description: "" };
+                    const rowBg =
+                      detail.status === "matching" ? "bg-emerald-50/20" :
+                      detail.status === "mismatched" ? "bg-rose-50/20" :
+                      "";
+                    return (
+                      <tr
+                        key={field}
+                        className={`transition hover:bg-slate-50/60 ${rowBg}`}
+                      >
+                        <td className="px-5 py-3.5">
+                          <p className="text-slate-900 font-semibold text-xs">{meta.label}</p>
+                          <p className="text-slate-400 text-[11px] mt-0.5">{meta.description}</p>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {detail.values.length === 0 ? (
+                            <span className="text-slate-400 text-xs italic">Not extracted by OCR</span>
+                          ) : detail.values.length === 1 ? (
+                            <span className="text-slate-700 text-xs font-mono">{String(detail.values[0])}</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {detail.values.map((v, i) => (
+                                <span
+                                  key={i}
+                                  className={`px-2 py-0.5 rounded text-xs font-mono ${
+                                    detail.status === "matching"
+                                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                      : "bg-rose-50 text-rose-800 border border-rose-200"
+                                  }`}
+                                >
+                                  Doc {i + 1}: {String(v)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <StatusBadge status={detail.status} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
 
           {/* Next steps */}
-          <div className="glass-panel rounded-xl p-5 border border-brand-500/10">
-            <p className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-              <FileText size={15} className="text-brand-400" />
-              Next Steps
-            </p>
-            <ul className="text-xs text-gray-400 space-y-2">
-              <li className="flex items-start gap-2">
-                <span className="text-brand-400 mt-0.5">1.</span>
-                Open each certificate individually and run <span className="text-white">AI Verification</span> (QR, Blockchain, Tampering, Duplicate checks).
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-brand-400 mt-0.5">2.</span>
-                Run <span className="text-white">Fraud Analysis</span> → <span className="text-white">Trust Score</span> → <span className="text-white">Final Prediction</span>.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-brand-400 mt-0.5">3.</span>
-                Generate and <span className="text-white">Download</span> the full PDF Verification Report.
-              </li>
-            </ul>
-            <Link
-              href="/dashboard/upload"
-              className="mt-4 inline-flex items-center gap-1 text-xs text-brand-400 hover:underline"
-            >
-              <ArrowLeft size={12} /> Back to Uploads
-            </Link>
-          </div>
+          <Card className="border-indigo-100 bg-indigo-50/30">
+            <CardContent className="p-5 space-y-3">
+              <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <FileText size={15} className="text-indigo-600" />
+                Next Steps
+              </p>
+              <ul className="text-xs text-slate-600 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-600 font-bold">1.</span>
+                  Open each certificate individually and run <span className="text-slate-900 font-semibold">AI Verification</span> (QR, Blockchain, Tampering, Duplicate checks).
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-600 font-bold">2.</span>
+                  Run <span className="text-slate-900 font-semibold">Fraud Analysis</span> → <span className="text-slate-900 font-semibold">Trust Score</span> → <span className="text-slate-900 font-semibold">Final Prediction</span>.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-600 font-bold">3.</span>
+                  Generate and <span className="text-slate-900 font-semibold">Download</span> the full PDF Verification Report.
+                </li>
+              </ul>
+              <Link
+                href="/dashboard/upload"
+                className="mt-2 inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline font-semibold"
+              >
+                <ArrowLeft size={12} /> Back to Uploads
+              </Link>
+            </CardContent>
+          </Card>
         </>
       )}
 
-      <p className="text-xs text-gray-700 mt-10 text-center">
+      <p className="text-xs text-slate-400 mt-8 text-center font-mono">
         CertiVerify AI — Module 5: Cross-Document Comparison Engine
       </p>
     </main>
@@ -386,28 +410,28 @@ export default function GroupComparisonPage() {
 function StatusBadge({ status }: { status: string }) {
   if (status === "matching") {
     return (
-      <span className="flex items-center gap-1 text-xs text-genuine font-medium">
+      <span className="flex items-center gap-1 text-xs text-emerald-700 font-semibold">
         <CheckCircle2 size={13} /> Matching
       </span>
     );
   }
   if (status === "mismatched") {
     return (
-      <span className="flex items-center gap-1 text-xs text-fake font-medium">
+      <span className="flex items-center gap-1 text-xs text-rose-700 font-semibold">
         <XCircle size={13} /> Mismatched
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-1 text-xs text-gray-500">
+    <span className="flex items-center gap-1 text-xs text-slate-400">
       <HelpCircle size={13} /> Missing
     </span>
   );
 }
 
 function ConsistencyRing({ value }: { value: number }) {
-  const color = value >= 85 ? "#16a34a" : value >= 50 ? "#d97706" : "#dc2626";
-  const trackColor = value >= 85 ? "#14532d" : value >= 50 ? "#78350f" : "#7f1d1d";
+  const color = value >= 85 ? "#059669" : value >= 50 ? "#d97706" : "#dc2626";
+  const trackColor = "#e2e8f0";
   const circumference = 2 * Math.PI * 32;
   const offset = circumference - (value / 100) * circumference;
   return (
@@ -421,7 +445,7 @@ function ConsistencyRing({ value }: { value: number }) {
         transform="rotate(-90 40 40)"
         style={{ transition: "stroke-dashoffset 1s ease" }}
       />
-      <text x="40" y="44" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white">
+      <text x="40" y="45" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#0f172a" fontFamily="monospace">
         {value}%
       </text>
     </svg>

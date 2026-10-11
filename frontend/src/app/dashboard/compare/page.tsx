@@ -4,15 +4,33 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDropzone } from "react-dropzone";
 import {
-  ShieldCheck, ArrowLeft, GitCompare, Upload, FileText,
-  Image as ImageIcon, X, Loader2, CheckCircle2, AlertTriangle,
-  ChevronDown, Tag, TrendingUp, FileDown, Plus, Sparkles,
-  Minus, Info,
+  ArrowLeft,
+  GitCompare,
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  X,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  ChevronDown,
+  Tag,
+  TrendingUp,
+  FileDown,
+  Plus,
+  Sparkles,
+  Minus,
+  Info,
 } from "lucide-react";
 import {
-  directCompareApi, DirectCompareResponse, FieldComparisonRow,
-  getAccessToken, authApi,
+  directCompareApi,
+  DirectCompareResponse,
+  FieldComparisonRow,
+  getAccessToken,
+  authApi,
 } from "@/lib/api";
+import { Logo } from "@/components/ui/Logo";
+import { Button } from "@/components/ui/Button";
 
 // ── Document type options ────────────────────────────────────────────────
 const MANUAL_DOC_TYPES: { value: string; label: string }[] = [
@@ -98,85 +116,60 @@ export default function ComparePage() {
   }
 
   function updateSlotType(idx: number, val: string) {
-    setSlots((prev) => prev.map((s, i) => i === idx ? { ...s, docType: val } : s));
-  }
-
-  function clearSlotFile(idx: number) {
-    setSlots((prev) => prev.map((s, i) => i === idx ? { ...s, file: null } : s));
+    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, docType: val } : s)));
   }
 
   function setSlotFile(idx: number, file: File) {
-    setSlots((prev) => prev.map((s, i) => i === idx ? { ...s, file } : s));
+    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, file } : s)));
   }
 
-  // ── Run Comparison ─────────────────────────────────────────────────────
+  function clearSlotFile(idx: number) {
+    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, file: null } : s)));
+  }
+
+  function handleReset() {
+    setResult(null);
+    setCompareError(null);
+    setCompareStage(null);
+    setStep("select");
+  }
+
   async function handleCompare() {
-    const validSlots = slots.filter((s) => s.file !== null);
-
+    const validSlots = slots.filter((s) => s.file !== null && s.docType !== "");
     if (validSlots.length < 2) {
-      setCompareError("Please upload at least 2 documents to run comparison.");
+      setCompareError("Please upload at least 2 documents and select their document types.");
       return;
     }
-
-    const missingTypeIdx = slots.findIndex((s) => s.file !== null && !s.docType);
-    if (missingTypeIdx !== -1) {
-      setCompareError(`Please select a document type for Document ${missingTypeIdx + 1}.`);
-      return;
-    }
-
-    const files = validSlots.map((s) => s.file!);
-    const docTypes = validSlots.map((s) => s.docType);
 
     setComparing(true);
     setCompareError(null);
     setStep("comparing");
 
-    // Animate stage labels
     let stageIdx = 0;
     setCompareStage(COMPARE_STAGES[0]);
-    const stageTimer = setInterval(() => {
-      stageIdx = Math.min(stageIdx + 1, COMPARE_STAGES.length - 1);
+    const timer = setInterval(() => {
+      stageIdx = (stageIdx + 1) % COMPARE_STAGES.length;
       setCompareStage(COMPARE_STAGES[stageIdx]);
-    }, 3500);
+    }, 2500);
 
     try {
-      const { data } = await directCompareApi.compare(files, docTypes);
-      clearInterval(stageTimer);
-      setCompareStage(null);
-      setResult(data);
+      const files = validSlots.map((s) => s.file!);
+      const docTypes = validSlots.map((s) => s.docType);
+      const res = await directCompareApi.compare(files, docTypes);
+      clearInterval(timer);
+      setResult(res.data);
       setStep("results");
     } catch (err: unknown) {
-      clearInterval(stageTimer);
-      setCompareStage(null);
-      let msg = "Comparison failed. Please check the files and try again.";
-      if (err && typeof err === "object" && "response" in err) {
-        const res = (err as { response?: { data?: { detail?: any } } }).response;
-        if (res?.data?.detail) {
-          const d = res.data.detail;
-          if (typeof d === "string") {
-            msg = d;
-          } else if (typeof d === "object" && d.message) {
-            msg = d.message;
-          } else {
-            msg = JSON.stringify(d);
-          }
-        }
-      } else if (err instanceof Error) {
-        msg = err.message;
-      }
-      setCompareError(msg);
+      clearInterval(timer);
       setStep("select");
+      let msg = "Document comparison failed. Please ensure both files are clear certificates/documents.";
+      if (err instanceof Error) msg = err.message;
+      setCompareError(msg);
     } finally {
+      clearInterval(timer);
       setComparing(false);
+      setCompareStage(null);
     }
-  }
-
-  function handleReset() {
-    setStep("select");
-    setSlots([{ docType: "", file: null }, { docType: "", file: null }]);
-    setResult(null);
-    setCompareError(null);
-    setPdfError(null);
   }
 
   async function handleDownloadPdf() {
@@ -203,47 +196,52 @@ export default function ComparePage() {
   const canCompare = validCount >= 2 && validCount === validWithTypes;
 
   return (
-    <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
-
+    <main className="min-h-screen px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="text-brand-500" size={28} />
-          <span className="text-xl font-bold text-white">CertiVerify AI</span>
+      <header className="flex items-center justify-between pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <Logo size="md" />
+          <div>
+            <span className="text-lg font-bold text-slate-900 block font-sans">CertiVerify AI</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-600 font-medium">Document Comparison</span>
+          </div>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-400 hidden sm:block">Signed in as {userName || "…"}</span>
-          <Link href="/dashboard" className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition">
-            <ArrowLeft size={16} /> Dashboard
+          <span className="text-xs text-slate-500 hidden sm:block">Signed in as {userName || "…"}</span>
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-indigo-600 font-medium transition"
+          >
+            <ArrowLeft size={14} /> Back to Dashboard
           </Link>
         </div>
       </header>
 
       {/* Page title */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <GitCompare className="text-genuine" size={26} />
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <GitCompare className="text-indigo-600" size={24} />
           Intelligent Document Comparison
         </h1>
-        <p className="text-gray-400 mt-1 text-sm">
+        <p className="text-slate-500 mt-1 text-xs sm:text-sm">
           Upload 2–5 documents, run field-by-field AI comparison with fuzzy matching and consistency analysis.
         </p>
 
         {/* Supported pairs collapsible */}
         <button
           onClick={() => setShowPairHints((v) => !v)}
-          className="mt-3 flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition"
+          className="mt-3 flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium transition"
         >
-          <Info size={12} />
+          <Info size={13} />
           {showPairHints ? "Hide" : "Show"} supported document pairs
-          <ChevronDown size={12} className={`transition-transform ${showPairHints ? "rotate-180" : ""}`} />
+          <ChevronDown size={13} className={`transition-transform ${showPairHints ? "rotate-180" : ""}`} />
         </button>
         {showPairHints && (
           <div className="mt-2 flex flex-wrap gap-2">
             {SUPPORTED_PAIRS.map((p) => (
               <span
                 key={p}
-                className="text-xs bg-brand-900/40 border border-brand-700/40 text-brand-300 rounded-full px-3 py-1"
+                className="text-xs bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full px-3 py-1 font-medium"
               >
                 {p}
               </span>
@@ -256,8 +254,8 @@ export default function ComparePage() {
       {step === "select" && (
         <div className="space-y-5">
           {compareError && (
-            <div className="flex items-center gap-2 bg-fake/10 border border-fake/30 text-fake text-sm rounded-xl px-4 py-3">
-              <AlertTriangle size={15} />
+            <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3">
+              <AlertTriangle size={16} />
               {compareError}
             </div>
           )}
@@ -283,44 +281,46 @@ export default function ComparePage() {
           {slots.length < MAX_SLOTS && (
             <button
               onClick={addSlot}
-              className="w-full rounded-xl border border-dashed border-surface-border text-gray-500 hover:text-brand-400 hover:border-brand-600/50 py-3 text-sm transition flex items-center justify-center gap-2"
+              className="w-full rounded-xl border border-dashed border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-400 py-3 text-sm transition flex items-center justify-center gap-2 bg-white"
             >
               <Plus size={15} /> Add Document {slots.length + 1}
-              <span className="text-xs opacity-60">(max {MAX_SLOTS})</span>
+              <span className="text-xs text-slate-400">(max {MAX_SLOTS})</span>
             </button>
           )}
 
           {/* Requirements hint */}
-          {(!canCompare) && (
-            <div className="text-xs text-gray-500 text-center space-y-0.5">
+          {!canCompare && (
+            <div className="text-xs text-slate-500 text-center space-y-0.5">
               {validCount < 2 && <p>→ Select and upload at least 2 documents</p>}
               {validCount >= 2 && validWithTypes < validCount && <p>→ Select a document type for each uploaded document</p>}
             </div>
           )}
 
-          <button
+          <Button
             id="run-comparison-btn"
             onClick={handleCompare}
             disabled={!canCompare || comparing}
-            className="w-full rounded-xl bg-genuine hover:bg-genuine/90 disabled:opacity-50 text-white font-semibold py-3.5 transition inline-flex items-center justify-center gap-2 cursor-pointer"
+            loading={comparing}
+            variant="primary"
+            size="lg"
+            className="w-full text-sm font-semibold"
+            icon={<GitCompare size={18} />}
           >
-            {comparing
-              ? <><Loader2 size={18} className="animate-spin" /> {compareStage ?? "Running…"}</>
-              : <><GitCompare size={18} /> Run Comparison</>}
-          </button>
+            {comparing ? (compareStage ?? "Running…") : "Run Comparison"}
+          </Button>
         </div>
       )}
 
       {/* ── COMPARING ───────────────────────────────────────────────────── */}
       {step === "comparing" && (
-        <div className="text-center py-20 space-y-5">
+        <div className="text-center py-20 space-y-5 bg-white border border-slate-200 rounded-xl p-8 shadow-sm">
           <div className="relative inline-block">
-            <Loader2 size={56} className="animate-spin text-brand-400 mx-auto" />
-            <Sparkles size={20} className="absolute -top-1 -right-1 text-genuine animate-pulse" />
+            <Loader2 size={56} className="animate-spin text-indigo-600 mx-auto" />
+            <Sparkles size={20} className="absolute -top-1 -right-1 text-emerald-500 animate-pulse" />
           </div>
           <div>
-            <p className="text-white font-semibold text-lg">{compareStage ?? "Processing…"}</p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-slate-900 font-semibold text-lg">{compareStage ?? "Processing…"}</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
               Running OCR on all uploaded documents and performing intelligent field comparison.
             </p>
           </div>
@@ -329,10 +329,10 @@ export default function ComparePage() {
             {COMPARE_STAGES.map((s) => (
               <span
                 key={s}
-                className={`text-[10px] px-2 py-0.5 rounded-full border transition ${
+                className={`text-[10px] font-mono px-2.5 py-1 rounded-full border transition ${
                   s === compareStage
-                    ? "bg-brand-600/30 border-brand-500 text-brand-300"
-                    : "bg-surface-border/10 border-surface-border/20 text-gray-600"
+                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 font-bold"
+                    : "bg-slate-50 border-slate-200 text-slate-400"
                 }`}
               >
                 {s}
@@ -356,7 +356,6 @@ export default function ComparePage() {
   );
 }
 
-
 // ── SlotRow sub-component ────────────────────────────────────────────────
 
 interface SlotRowProps {
@@ -378,6 +377,7 @@ function SlotRow({
     (accepted: File[]) => { if (accepted[0]) onFileSet(accepted[0]); },
     [onFileSet],
   );
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, maxFiles: 1,
     accept: {
@@ -392,24 +392,24 @@ function SlotRow({
   const isRequired = slotIndex < 2;
 
   return (
-    <div className="glass-panel rounded-xl border border-surface-border p-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
       <div className="flex items-start gap-3">
         {/* Slot number badge */}
         <div className="flex flex-col items-center gap-1 pt-0.5 shrink-0">
           <span className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${
-            isRequired ? "bg-brand-600" : "bg-surface-border"
+            isRequired ? "bg-indigo-600" : "bg-slate-400"
           }`}>
             {num}
           </span>
           {!isRequired && (
-            <span className="text-[9px] text-gray-600">optional</span>
+            <span className="text-[9px] text-slate-400 font-mono">opt</span>
           )}
         </div>
 
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Doc type selector */}
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">
+            <label className="text-xs font-semibold text-slate-700 mb-1 block">
               Document Type {isRequired ? "*" : "(optional)"}
             </label>
             <div className="relative">
@@ -417,19 +417,19 @@ function SlotRow({
                 id={`doc-type-${num}`}
                 value={docType}
                 onChange={(e) => onDocTypeChange(e.target.value)}
-                className="w-full appearance-none bg-gray-900 border border-surface-border rounded-lg px-3 py-2 pr-8 text-sm text-white font-medium focus:outline-none focus:border-brand-500 transition cursor-pointer"
+                className="w-full appearance-none bg-white border border-slate-300 rounded-lg px-3 py-2 pr-8 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition cursor-pointer"
               >
-                <option value="" className="bg-gray-900 text-gray-400">— Select type —</option>
+                <option value="" className="text-slate-400">— Select type —</option>
                 {MANUAL_DOC_TYPES.map((t) => (
-                  <option key={t.value} value={t.value} className="bg-gray-900 text-white font-medium py-1">
+                  <option key={t.value} value={t.value} className="text-slate-900 font-medium py-1">
                     {t.label}
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
             {docType && (
-              <p className="text-xs text-brand-400 mt-1 flex items-center gap-1">
+              <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1 font-medium">
                 <Tag size={10} /> {typeLabel(docType)}
               </p>
             )}
@@ -437,33 +437,37 @@ function SlotRow({
 
           {/* Dropzone or file preview */}
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Document File</label>
+            <label className="text-xs font-semibold text-slate-700 mb-1 block">Document File</label>
             {!file ? (
               <div
                 {...getRootProps()}
-                className={`rounded-lg border-2 border-dashed px-4 py-3 text-center cursor-pointer transition text-sm ${
+                className={`rounded-lg border-2 border-dashed px-4 py-3 text-center cursor-pointer transition text-sm bg-slate-50/50 ${
                   isDragActive
-                    ? "border-genuine bg-genuine/5"
-                    : "border-surface-border hover:border-genuine/50"
+                    ? "border-indigo-600 bg-indigo-50/50"
+                    : "border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/20"
                 }`}
               >
                 <input {...getInputProps()} />
-                <Upload className="mx-auto mb-1 text-genuine" size={20} />
-                <p className="text-white text-xs font-medium">
+                <Upload className="mx-auto mb-1 text-indigo-600" size={18} />
+                <p className="text-slate-800 text-xs font-medium">
                   {isDragActive ? "Drop here…" : "Drag & drop or click"}
                 </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">PDF / JPG / PNG · max 15 MB</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">PDF / JPG / PNG · max 15 MB</p>
               </div>
             ) : (
-              <div className="glass-panel rounded-lg px-3 py-2 flex items-center justify-between h-full">
-                <div className="flex items-center gap-2 text-sm text-gray-200 min-w-0">
+              <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between h-full">
+                <div className="flex items-center gap-2 text-sm text-slate-800 min-w-0">
                   {file.type === "application/pdf"
-                    ? <FileText size={15} className="text-brand-400 shrink-0" />
-                    : <ImageIcon size={15} className="text-brand-400 shrink-0" />}
-                  <span className="truncate text-xs">{file.name}</span>
-                  <span className="text-gray-500 text-[10px] shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
+                    ? <FileText size={16} className="text-indigo-600 shrink-0" />
+                    : <ImageIcon size={16} className="text-indigo-600 shrink-0" />}
+                  <span className="truncate text-xs font-medium">{file.name}</span>
+                  <span className="text-slate-400 text-[10px] shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
                 </div>
-                <button onClick={onFileClear} className="text-gray-500 hover:text-fake transition ml-2 shrink-0">
+                <button
+                  onClick={onFileClear}
+                  className="text-slate-400 hover:text-rose-600 transition ml-2 shrink-0 p-1"
+                  aria-label="Clear file"
+                >
                   <X size={14} />
                 </button>
               </div>
@@ -475,7 +479,7 @@ function SlotRow({
         {canRemove && (
           <button
             onClick={onRemove}
-            className="text-gray-600 hover:text-fake transition mt-0.5 shrink-0"
+            className="text-slate-400 hover:text-rose-600 transition mt-1 shrink-0 p-1"
             title="Remove this slot"
           >
             <Minus size={16} />
@@ -485,7 +489,6 @@ function SlotRow({
     </div>
   );
 }
-
 
 // ── ComparisonResults sub-component ──────────────────────────────────────
 
@@ -505,43 +508,44 @@ function ComparisonResults({
   const pct = result.comparison_score ?? result.similarity_percentage;
   const isIdentical  = result.comparison_type === "identical_document";
 
-  const scoreColor = pct >= 80 ? "text-genuine" : pct >= 60 ? "text-suspicious" : "text-fake";
-  const scoreBg    = pct >= 80 ? "bg-genuine/10 border-genuine/30"
-                   : pct >= 60 ? "bg-suspicious/10 border-suspicious/30"
-                   : "bg-fake/10 border-fake/30";
+  const scoreColor = pct >= 80 ? "text-emerald-700" : pct >= 60 ? "text-amber-700" : "text-rose-700";
+  const scoreBg    = pct >= 80 ? "bg-emerald-50/70 border-emerald-200"
+                   : pct >= 60 ? "bg-amber-50/70 border-amber-200"
+                   : "bg-rose-50/70 border-rose-200";
 
   return (
     <div className="space-y-6">
-
       {/* Identical Documents Banner */}
       {isIdentical && (
-        <div className="flex items-center gap-3 bg-genuine/15 border border-genuine/40 text-genuine rounded-xl px-5 py-3 text-sm font-semibold">
-          <CheckCircle2 size={18} className="shrink-0" />
+        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-5 py-3 text-sm font-semibold shadow-sm">
+          <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
           <span>Identical Documents Detected — The uploaded documents are exact copies. No field differences were found.</span>
         </div>
       )}
 
       {/* ── Score banner ─────────────────────────────────────────────── */}
-      <div className={`rounded-xl border px-6 py-5 ${scoreBg} flex flex-col sm:flex-row items-center justify-between gap-4`}>
+      <div className={`rounded-xl border px-6 py-5 ${scoreBg} flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm`}>
         <div>
-          <p className="text-sm text-gray-400 mb-1">Overall Consistency Score</p>
-          <p className={`text-5xl font-black ${scoreColor}`}>{pct}%</p>
-          <div className="flex items-center flex-wrap gap-3 mt-2 text-xs">
-            <span className="text-genuine">✓ {matchCount} match{matchCount !== 1 ? "es" : ""}</span>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Overall Consistency Score
+          </p>
+          <p className={`text-5xl font-black ${scoreColor} font-mono`}>{pct}%</p>
+          <div className="flex items-center flex-wrap gap-3 mt-2 text-xs font-semibold">
+            <span className="text-emerald-700">✓ {matchCount} match{matchCount !== 1 ? "es" : ""}</span>
             {partialCount > 0 && (
-              <span className="text-suspicious">~ {partialCount} partial</span>
+              <span className="text-amber-700">~ {partialCount} partial</span>
             )}
-            <span className="text-fake">✗ {mismatchCount} mismatch{mismatchCount !== 1 ? "es" : ""}</span>
-            <span className="text-gray-500">— {missingCount} missing</span>
+            <span className="text-rose-700">✗ {mismatchCount} mismatch{mismatchCount !== 1 ? "es" : ""}</span>
+            <span className="text-slate-500">— {missingCount} missing</span>
           </div>
         </div>
-        <div className="text-right text-xs text-gray-500 space-y-1.5">
+        <div className="text-right text-xs text-slate-600 space-y-1.5">
           <div className="flex items-center gap-2 justify-end">
-            <GitCompare size={11} className="text-brand-400" />
-            <span className="text-gray-300 font-medium">{result.pair_hint}</span>
+            <GitCompare size={12} className="text-indigo-600" />
+            <span className="text-slate-800 font-semibold">{result.pair_hint}</span>
           </div>
-          <div className="flex items-center gap-2 justify-end">
-            <TrendingUp size={11} className="text-gray-500" />
+          <div className="flex items-center gap-2 justify-end font-mono text-[11px] text-slate-500">
+            <TrendingUp size={12} />
             <span>OCR: {(result.doc1_ocr_accuracy * 100).toFixed(0)}% / {(result.doc2_ocr_accuracy * 100).toFixed(0)}%</span>
           </div>
         </div>
@@ -549,26 +553,24 @@ function ComparisonResults({
 
       {/* ── AI Summary ────────────────────────────────────────────────── */}
       {result.ai_summary && result.ai_summary.length > 0 && (
-        <div className="glass-panel rounded-xl border border-brand-700/30 px-5 py-4">
+        <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-white">AI Consistency Analysis</h2>
+            <Sparkles size={16} className="text-indigo-600" />
+            <h2 className="text-sm font-semibold text-slate-900">AI Consistency Analysis</h2>
           </div>
           <ul className="space-y-2">
             {result.ai_summary.map((bullet, i) => {
               const isGood    = bullet.startsWith("✅");
               const isWarn    = bullet.startsWith("⚠️");
               const isBad     = bullet.startsWith("❌");
-              const isNeutral = bullet.startsWith("—");
               return (
                 <li
                   key={i}
-                  className={`text-sm rounded-lg px-3 py-2 border leading-relaxed ${
-                    isGood    ? "bg-genuine/5 border-genuine/20 text-genuine/90"
-                    : isWarn  ? "bg-suspicious/5 border-suspicious/20 text-suspicious/90"
-                    : isBad   ? "bg-fake/5 border-fake/20 text-fake/90"
-                    : isNeutral ? "bg-surface-border/10 border-surface-border/20 text-gray-400"
-                    : "bg-surface-border/10 border-surface-border/20 text-gray-300"
+                  className={`text-xs rounded-lg px-3 py-2 border leading-relaxed font-sans ${
+                    isGood    ? "bg-emerald-50/50 border-emerald-200 text-emerald-800"
+                    : isWarn  ? "bg-amber-50/50 border-amber-200 text-amber-800"
+                    : isBad   ? "bg-rose-50/50 border-rose-200 text-rose-800"
+                    : "bg-slate-50 border-slate-200 text-slate-700"
                   }`}
                 >
                   {bullet}
@@ -580,29 +582,29 @@ function ComparisonResults({
       )}
 
       {/* ── Field-by-field table ───────────────────────────────────────── */}
-      <div className="glass-panel rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-surface-border bg-surface-border/10 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Field-by-Field Comparison</h2>
-          <span className="text-xs text-gray-500">{result.comparison.length} fields compared</span>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-900">Field-by-Field Comparison</h2>
+          <span className="text-xs font-mono text-slate-500">{result.comparison.length} fields compared</span>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-surface-border/30 bg-surface-border/5 text-[10px]">
-          <span className="flex items-center gap-1 text-genuine"><CheckCircle2 size={10} /> Match (≥82%)</span>
-          <span className="flex items-center gap-1 text-suspicious"><AlertTriangle size={10} /> Partial (60–81%)</span>
-          <span className="flex items-center gap-1 text-fake"><X size={10} /> Mismatch (&lt;60%)</span>
-          <span className="text-gray-500">— Missing</span>
+        <div className="flex items-center gap-4 px-4 py-2 border-b border-slate-100 bg-slate-50/50 text-[10px] font-semibold">
+          <span className="flex items-center gap-1 text-emerald-700"><CheckCircle2 size={10} /> Match (≥82%)</span>
+          <span className="flex items-center gap-1 text-amber-700"><AlertTriangle size={10} /> Partial (60–81%)</span>
+          <span className="flex items-center gap-1 text-rose-700"><X size={10} /> Mismatch (&lt;60%)</span>
+          <span className="text-slate-400">— Missing</span>
         </div>
 
         {/* Header */}
-        <div className="grid grid-cols-[1.1fr_1fr_1fr_0.7fr] text-xs text-gray-400 font-medium bg-surface-border/20 px-4 py-2.5 border-b border-surface-border">
+        <div className="grid grid-cols-[1.1fr_1fr_1fr_0.7fr] text-[10px] font-mono uppercase text-slate-500 bg-slate-50 px-4 py-2.5 border-b border-slate-200">
           <span>Field</span>
           <span>Document 1</span>
           <span>Document 2</span>
           <span className="text-center">Result</span>
         </div>
 
-        <div className="divide-y divide-surface-border/30">
+        <div className="divide-y divide-slate-100">
           {result.comparison.map((row) => (
             <ComparisonRow key={row.field} row={row} />
           ))}
@@ -611,27 +613,31 @@ function ComparisonResults({
 
       {/* ── Actions ───────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <button
+        <Button
           id="download-compare-pdf-btn"
           onClick={onDownloadPdf}
           disabled={downloadingPdf}
-          className="flex-1 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold py-3 text-sm transition inline-flex items-center justify-center gap-2"
+          loading={downloadingPdf}
+          variant="primary"
+          size="md"
+          className="flex-1"
+          icon={<FileDown size={16} />}
         >
-          {downloadingPdf
-            ? <><Loader2 size={16} className="animate-spin" /> Generating PDF…</>
-            : <><FileDown size={16} /> Download Comparison Report</>}
-        </button>
-        <button
+          {downloadingPdf ? "Generating PDF…" : "Download Comparison Report"}
+        </Button>
+        <Button
           id="compare-reset-btn"
           onClick={onReset}
-          className="flex-1 rounded-xl border border-surface-border text-gray-400 hover:text-white hover:border-brand-500/50 py-3 text-sm transition"
+          variant="secondary"
+          size="md"
+          className="flex-1"
         >
           Compare Different Documents
-        </button>
+        </Button>
       </div>
 
       {pdfError && (
-        <div className="flex items-center gap-2 bg-fake/10 border border-fake/30 text-fake text-sm rounded-xl px-4 py-3">
+        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3">
           <AlertTriangle size={14} /> {pdfError}
         </div>
       )}
@@ -639,69 +645,68 @@ function ComparisonResults({
   );
 }
 
-
 // ── ComparisonRow ─────────────────────────────────────────────────────────
 
 function ComparisonRow({ row }: { row: FieldComparisonRow }) {
   const statusStyles: Record<string, string> = {
-    match:    "border-l-4 border-genuine",
-    partial:  "border-l-4 border-suspicious",
-    mismatch: "border-l-4 border-fake",
-    missing:  "border-l-4 border-gray-600 opacity-60",
+    match:    "border-l-4 border-emerald-500",
+    partial:  "border-l-4 border-amber-500",
+    mismatch: "border-l-4 border-rose-500",
+    missing:  "border-l-4 border-slate-300 opacity-60",
   };
 
   const valueStyles: Record<string, string> = {
-    match:    "text-genuine",
-    partial:  "text-suspicious",
-    mismatch: "text-fake",
-    missing:  "text-gray-500 italic",
+    match:    "text-emerald-700 font-medium",
+    partial:  "text-amber-700 font-medium",
+    mismatch: "text-rose-700 font-medium",
+    missing:  "text-slate-400 italic",
   };
 
-  const badge: Record<string, JSX.Element> = {
+  const badge: Record<string, React.ReactNode> = {
     match: (
       <div className="flex flex-col items-center gap-0.5">
-        <span className="inline-flex items-center gap-1 text-[10px] bg-genuine/15 text-genuine border border-genuine/30 rounded-full px-2 py-0.5">
+        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5 font-semibold">
           <CheckCircle2 size={9} /> Match
         </span>
         {row.similarity != null && (
-          <span className="text-[9px] text-genuine/60">{row.similarity}%</span>
+          <span className="text-[9px] font-mono text-emerald-600">{row.similarity}%</span>
         )}
       </div>
     ),
     partial: (
       <div className="flex flex-col items-center gap-0.5">
-        <span className="inline-flex items-center gap-1 text-[10px] bg-suspicious/15 text-suspicious border border-suspicious/30 rounded-full px-2 py-0.5">
+        <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-semibold">
           <AlertTriangle size={9} /> Partial
         </span>
         {row.similarity != null && (
-          <span className="text-[9px] text-suspicious/60">{row.similarity}%</span>
+          <span className="text-[9px] font-mono text-amber-600">{row.similarity}%</span>
         )}
       </div>
     ),
     mismatch: (
       <div className="flex flex-col items-center gap-0.5">
-        <span className="inline-flex items-center gap-1 text-[10px] bg-fake/15 text-fake border border-fake/30 rounded-full px-2 py-0.5">
+        <span className="inline-flex items-center gap-1 text-[10px] bg-rose-50 text-rose-700 border border-rose-200 rounded-full px-2 py-0.5 font-semibold">
           <AlertTriangle size={9} /> Mismatch
         </span>
         {row.similarity != null && (
-          <span className="text-[9px] text-fake/60">{row.similarity}%</span>
+          <span className="text-[9px] font-mono text-rose-600">{row.similarity}%</span>
         )}
       </div>
     ),
     missing: (
-      <span className="inline-flex text-[10px] bg-gray-700/40 text-gray-500 border border-gray-600/30 rounded-full px-2 py-0.5">
+      <span className="inline-flex text-[10px] bg-slate-100 text-slate-500 border border-slate-200 rounded-full px-2 py-0.5 font-medium">
         Missing
       </span>
     ),
   };
 
   return (
-    <div className={`grid grid-cols-[1.1fr_1fr_1fr_0.7fr] px-4 py-3 items-start gap-2 ${statusStyles[row.status]}`}>
-      <p className="text-xs font-medium text-gray-300 pt-0.5">{row.field_label}</p>
-      <p className={`text-xs break-words ${valueStyles[row.status]}`}>
+    <div className={`grid grid-cols-[1.1fr_1fr_1fr_0.7fr] px-4 py-3 items-start gap-2 hover:bg-slate-50/50 transition-colors ${statusStyles[row.status]}`}>
+      <p className="text-xs font-semibold text-slate-700 pt-0.5">{row.field_label}</p>
+      <p className={`text-xs break-words font-mono ${valueStyles[row.status]}`}>
         {row.doc1_value ?? "—"}
       </p>
-      <p className={`text-xs break-words ${row.status === "mismatch" || row.status === "partial" ? valueStyles[row.status] : valueStyles[row.status]}`}>
+      <p className={`text-xs break-words font-mono ${valueStyles[row.status]}`}>
         {row.doc2_value ?? "—"}
       </p>
       <div className="flex justify-center">

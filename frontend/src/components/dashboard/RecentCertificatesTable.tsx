@@ -7,10 +7,6 @@ import {
   Search,
   ExternalLink,
   Download,
-  CheckCircle,
-  AlertTriangle,
-  ShieldAlert,
-  Clock,
   Loader2,
   FileQuestion,
 } from "lucide-react";
@@ -84,14 +80,14 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
   };
 
   return (
-    <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
       {/* Table Header Controls */}
-      <div className="p-4 border-b border-[#1b2b3f] flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-[#d3e4fe] font-sans">
+          <h2 className="text-sm font-semibold text-slate-900">
             Recent Certificate Registry
           </h2>
-          <p className="text-xs text-[#8d90a0]">
+          <p className="text-xs text-slate-500">
             Cryptographic ledger of recently analyzed credentials and forensic outcomes.
           </p>
         </div>
@@ -102,10 +98,10 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
             <button
               key={opt.value}
               onClick={() => onFilterChange(opt.value)}
-              className={`text-xs px-2.5 py-1 rounded-[4px] font-medium transition-colors ${
+              className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
                 filterLabel === opt.value
-                  ? "bg-[#2563eb] text-white"
-                  : "bg-[#000f21] text-[#8d90a0] hover:text-[#d3e4fe] border border-[#1b2b3f]"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-100"
               }`}
             >
               {opt.label}
@@ -115,19 +111,19 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
       </div>
 
       {/* Search Bar Sub-header */}
-      <div className="px-4 py-2.5 bg-[#000f21]/60 border-b border-[#1b2b3f] flex items-center gap-2">
-        <Search size={13} className="text-[#8d90a0] shrink-0" />
+      <div className="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex items-center gap-2">
+        <Search size={14} className="text-slate-400 shrink-0" />
         <input
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Filter by certificate filename or verification ID..."
-          className="w-full bg-transparent border-none text-xs text-[#d3e4fe] placeholder:text-[#8d90a0] focus:outline-none"
+          className="w-full bg-transparent border-none text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none"
         />
         {search && (
           <button
             onClick={() => onSearchChange("")}
-            className="text-xs text-[#8d90a0] hover:text-white shrink-0"
+            className="text-xs text-slate-400 hover:text-slate-700 shrink-0"
           >
             Clear
           </button>
@@ -138,11 +134,11 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
       <div className="overflow-x-auto">
         {certificates.length === 0 ? (
           <div className="p-12 text-center">
-            <FileQuestion size={36} className="text-[#8d90a0] mx-auto mb-3 opacity-60" />
-            <h3 className="text-sm font-semibold text-[#d3e4fe] mb-1">
+            <FileQuestion size={36} className="text-slate-300 mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-slate-900 mb-1">
               No Certificate Records Found
             </h3>
-            <p className="text-xs text-[#8d90a0] max-w-sm mx-auto mb-4">
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
               {search
                 ? `No certificates matched your search term "${search}".`
                 : "Your certificate verification ledger is currently empty. Ingest your first certificate to run the verification engine."}
@@ -156,37 +152,37 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
         ) : (
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-[#1b2b3f] bg-[#000f21]/40 font-mono text-[10px] text-[#8d90a0] uppercase tracking-wider">
-                <th className="py-2.5 px-4 font-semibold">Document Name</th>
-                <th className="py-2.5 px-4 font-semibold">Timestamp</th>
-                <th className="py-2.5 px-4 font-semibold">Verification ID</th>
-                <th className="py-2.5 px-4 font-semibold">OCR Accuracy</th>
-                <th className="py-2.5 px-4 font-semibold">Trust Score</th>
-                <th className="py-2.5 px-4 font-semibold">Verdict</th>
-                <th className="py-2.5 px-4 font-semibold text-right">Cockpit</th>
+              <tr className="border-b border-slate-100 bg-slate-50 text-[11px] text-slate-500 uppercase tracking-wider font-semibold">
+                <th className="py-2.5 px-4">Document Name</th>
+                <th className="py-2.5 px-4">Timestamp</th>
+                <th className="py-2.5 px-4">Verification ID</th>
+                <th className="py-2.5 px-4">OCR Accuracy</th>
+                <th className="py-2.5 px-4">Trust Score</th>
+                <th className="py-2.5 px-4">Verdict</th>
+                <th className="py-2.5 px-4 text-right">Cockpit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1b2b3f]">
+            <tbody className="divide-y divide-slate-100">
               {certificates.map((cert) => (
                 <tr
                   key={cert.id}
-                  className="hover:bg-[#102034]/60 transition-colors group"
+                  className="hover:bg-slate-50/70 transition-colors group"
                 >
                   {/* Filename & Type */}
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2.5 min-w-0 max-w-xs">
-                      <div className="p-1.5 rounded-[4px] bg-[#102034] border border-[#1b2b3f] text-[#2563eb] shrink-0">
+                      <div className="p-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 shrink-0">
                         <FileText size={14} />
                       </div>
                       <div className="min-w-0">
                         <Link
                           href={`/dashboard/certificates/${cert.id}`}
-                          className="font-medium text-[#d3e4fe] hover:text-[#2563eb] truncate block transition-colors"
+                          className="font-medium text-slate-900 hover:text-indigo-600 truncate block transition-colors"
                           title={cert.original_filename}
                         >
                           {cert.original_filename}
                         </Link>
-                        <span className="font-mono text-[10px] text-[#8d90a0] uppercase">
+                        <span className="font-mono text-[10px] text-slate-400 uppercase">
                           {cert.file_type}
                         </span>
                       </div>
@@ -194,27 +190,27 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
                   </td>
 
                   {/* Timestamp */}
-                  <td className="py-3 px-4 font-mono text-[11px] text-[#8d90a0] whitespace-nowrap">
+                  <td className="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
                     {formatTimestamp(cert.uploaded_at)}
                   </td>
 
                   {/* Verification ID / Hash */}
-                  <td className="py-3 px-4 font-mono text-[11px] text-[#b4c5ff] whitespace-nowrap">
+                  <td className="py-3 px-4 font-mono text-[11px] text-indigo-600 whitespace-nowrap">
                     {cert.verification_id ? (
                       <span className="font-semibold">{cert.verification_id}</span>
                     ) : (
-                      <span className="text-[#8d90a0]">#{cert.id.substring(0, 8)}</span>
+                      <span className="text-slate-400">#{cert.id.substring(0, 8)}</span>
                     )}
                   </td>
 
                   {/* OCR Accuracy */}
                   <td className="py-3 px-4 whitespace-nowrap font-mono text-[11px]">
                     {cert.ocr_accuracy != null ? (
-                      <span className="text-[#d3e4fe]">
+                      <span className="text-slate-700 font-medium">
                         {Math.round(cert.ocr_accuracy * 100)}%
                       </span>
                     ) : (
-                      <span className="text-[#8d90a0]">—</span>
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
 
@@ -224,16 +220,16 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
                       <span
                         className={`font-semibold ${
                           cert.trust_score >= 70
-                            ? "text-[#4edea3]"
+                            ? "text-emerald-600"
                             : cert.trust_score >= 40
-                            ? "text-[#ffb95f]"
-                            : "text-[#ffb4ab]"
+                            ? "text-amber-600"
+                            : "text-rose-600"
                         }`}
                       >
                         {Math.round(cert.trust_score)} / 100
                       </span>
                     ) : (
-                      <span className="text-[#8d90a0]">Pending</span>
+                      <span className="text-slate-400">Pending</span>
                     )}
                   </td>
 
@@ -252,7 +248,7 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
                           }
                           disabled={downloadingId === cert.id}
                           title="Download Signed PDF Report"
-                          className="p-1.5 text-[#8d90a0] hover:text-[#4edea3] hover:bg-[#4edea3]/10 rounded-[4px] transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                         >
                           {downloadingId === cert.id ? (
                             <Loader2 size={13} className="animate-spin" />
@@ -264,7 +260,7 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
 
                       <Link
                         href={`/dashboard/certificates/${cert.id}`}
-                        className="inline-flex items-center gap-1 text-xs text-[#2563eb] hover:text-[#b4c5ff] px-2 py-1 bg-[#102034] hover:bg-[#1b2b3f] rounded-[4px] border border-[#1b2b3f] font-medium transition-colors"
+                        className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-100 font-medium transition-colors"
                       >
                         <span>Inspect</span>
                         <ExternalLink size={11} />
@@ -280,3 +276,4 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
     </div>
   );
 };
+

@@ -10,15 +10,10 @@ import {
   ExternalLink,
   ShieldCheck,
   AlertTriangle,
-  ShieldX,
   Clock,
   Loader2,
   RefreshCw,
   UploadCloud,
-  FileQuestion,
-  Filter,
-  CheckCircle2,
-  Layers,
 } from "lucide-react";
 import {
   dashboardApi,
@@ -28,8 +23,20 @@ import {
   RecentCertificate,
   getAccessToken,
 } from "@/lib/api";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from "@/components/ui/Table";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type FilterStatus = "all" | "genuine" | "suspicious" | "fake" | "not_run";
 
@@ -175,38 +182,6 @@ export default function CertificateRegistryPage() {
     }
   };
 
-  const renderVerdictBadge = (label?: string) => {
-    switch (label?.toLowerCase()) {
-      case "genuine":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#4edea3]/10 text-[#4edea3] border border-[#4edea3]/30 text-[11px] font-mono font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]" />
-            GENUINE
-          </span>
-        );
-      case "suspicious":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#ffb95f]/10 text-[#ffb95f] border border-[#ffb95f]/30 text-[11px] font-mono font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#ffb95f]" />
-            SUSPICIOUS
-          </span>
-        );
-      case "fake":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#ffb4ab]/10 text-[#ffb4ab] border border-[#ffb4ab]/30 text-[11px] font-mono font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#ffb4ab]" />
-            FORGERY
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#8d90a0]/10 text-[#8d90a0] border border-[#8d90a0]/30 text-[11px] font-mono">
-            PENDING
-          </span>
-        );
-    }
-  };
-
   // Counts for quick filter pills
   const counts = useMemo(() => {
     let genuine = 0;
@@ -226,90 +201,98 @@ export default function CertificateRegistryPage() {
   }, [unifiedCertificates]);
 
   return (
-    <main className="min-h-screen bg-[#000f21] text-[#c3c6d7] p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Top Breadcrumbs & Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1b2b3f]">
+    <main className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Top Header & Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-mono text-[#8d90a0]">
-            <Link href="/dashboard" className="hover:text-[#d3e4fe] transition">
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400 mb-1.5">
+            <Link href="/dashboard" className="hover:text-indigo-600 transition-colors">
               Dashboard
             </Link>
             <span>/</span>
-            <span className="text-[#38bdf8]">Certificate Registry</span>
+            <span className="text-indigo-600 font-semibold">Certificate Registry</span>
           </div>
-          <h1 className="text-xl font-bold text-[#d3e4fe] font-sans flex items-center gap-2">
-            <FileText size={22} className="text-[#38bdf8]" />
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+            <FileText size={22} className="text-indigo-600" />
             Certificate Registry & Audit History Ledger
           </h1>
-          <p className="text-xs text-[#8d90a0]">
+          <p className="text-xs text-slate-500">
             Institutional audit trail of all verified academic credentials, cryptographic hashes, and forensic outcomes.
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button
+          <Button
             onClick={() => fetchData(true)}
             disabled={refreshing || loading}
-            className="px-3 py-1.5 text-xs font-medium bg-[#0b1c30] hover:bg-[#102034] text-[#c3c6d7] hover:text-[#d3e4fe] rounded-[4px] border border-[#1b2b3f] transition flex items-center gap-1.5 disabled:opacity-50"
+            variant="ghost"
+            size="sm"
+            aria-label="Synchronize registry ledger"
             title="Synchronize registry ledger"
           >
-            <RefreshCw size={12} className={refreshing ? "animate-spin text-[#38bdf8]" : "text-[#8d90a0]"} />
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
             <span>{refreshing ? "Syncing..." : "Refresh"}</span>
-          </button>
+          </Button>
 
-          <Link
-            href="/dashboard/upload"
-            className="px-4 py-1.5 text-xs font-semibold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[4px] shadow-sm transition flex items-center gap-1.5"
-          >
-            <UploadCloud size={14} />
-            <span>+ Ingest Document</span>
+          <Link href="/dashboard/upload">
+            <Button variant="primary" size="sm" icon={<UploadCloud size={14} />}>
+              Ingest Document
+            </Button>
           </Link>
         </div>
       </div>
 
       {/* Metric Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
-            Total Ingested
-          </span>
-          <span className="text-xl font-mono font-bold text-[#d3e4fe]">
-            {loading ? "…" : counts.total}
-          </span>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Total Ingested
+            </span>
+            <span className="text-2xl font-bold text-slate-900 font-mono">
+              {loading ? "…" : counts.total}
+            </span>
+          </CardContent>
+        </Card>
 
-        <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
-            Genuine Credentials
-          </span>
-          <span className="text-xl font-mono font-bold text-[#4edea3]">
-            {loading ? "…" : counts.genuine}
-          </span>
-        </div>
+        <Card className="border-emerald-100">
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Genuine Credentials
+            </span>
+            <span className="text-2xl font-bold text-emerald-700 font-mono">
+              {loading ? "…" : counts.genuine}
+            </span>
+          </CardContent>
+        </Card>
 
-        <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
-            Suspicious / Anomalies
-          </span>
-          <span className="text-xl font-mono font-bold text-[#ffb95f]">
-            {loading ? "…" : counts.suspicious}
-          </span>
-        </div>
+        <Card className="border-amber-100">
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Suspicious / Anomalies
+            </span>
+            <span className="text-2xl font-bold text-amber-700 font-mono">
+              {loading ? "…" : counts.suspicious}
+            </span>
+          </CardContent>
+        </Card>
 
-        <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
-            Detected Forgeries
-          </span>
-          <span className="text-xl font-mono font-bold text-[#ffb4ab]">
-            {loading ? "…" : counts.fake}
-          </span>
-        </div>
+        <Card className="border-rose-100">
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Detected Forgeries
+            </span>
+            <span className="text-2xl font-bold text-rose-700 font-mono">
+              {loading ? "…" : counts.fake}
+            </span>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Ledger Card */}
-      <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] overflow-hidden shadow-lg space-y-0">
+      <Card>
         {/* Filter and Search Bar */}
-        <div className="p-4 border-b border-[#1b2b3f] flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0b1c30]">
+        <CardHeader className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Status Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5">
             {[
@@ -322,16 +305,20 @@ export default function CertificateRegistryPage() {
               <button
                 key={tab.id}
                 onClick={() => setFilterStatus(tab.id as FilterStatus)}
-                className={`text-xs px-2.5 py-1 rounded-[4px] font-medium transition-colors flex items-center gap-1.5 ${
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
                   filterStatus === tab.id
-                    ? "bg-[#2563eb] text-white"
-                    : "bg-[#000f21] text-[#8d90a0] hover:text-[#d3e4fe] border border-[#1b2b3f]"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200"
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`text-[10px] font-mono px-1 rounded-[2px] ${
-                  filterStatus === tab.id ? "bg-white/20 text-white" : "bg-[#102034] text-[#8d90a0]"
-                }`}>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                    filterStatus === tab.id
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-200 text-slate-700"
+                  }`}
+                >
                   {tab.count}
                 </span>
               </button>
@@ -339,182 +326,195 @@ export default function CertificateRegistryPage() {
           </div>
 
           {/* Search Input */}
-          <div className="relative w-full md:w-72">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8d90a0]" />
-            <input
+          <div className="w-full md:w-72">
+            <Input
               type="text"
-              placeholder="Search filename, verification ID…"
+              placeholder="Search filename, ID…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#000f21] border border-[#1b2b3f] text-[#d3e4fe] text-xs pl-8 pr-3 py-1.5 rounded-[4px] placeholder-[#8d90a0] focus:outline-none focus:border-[#2563eb] transition"
+              leftIcon={<Search size={13} className="text-slate-400" />}
             />
           </div>
-        </div>
+        </CardHeader>
 
         {/* Ledger Table */}
-        {loading ? (
-          <div className="py-20 text-center space-y-2">
-            <Loader2 size={24} className="animate-spin text-[#38bdf8] mx-auto" />
-            <p className="text-xs text-[#8d90a0]">Loading credential registry ledger…</p>
-          </div>
-        ) : filteredCertificates.length === 0 ? (
-          <div className="py-16 text-center space-y-3 px-4">
-            <FileQuestion size={36} className="text-[#8d90a0] mx-auto opacity-40" />
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-[#d3e4fe]">
-                {search || filterStatus !== "all"
-                  ? "No matching certificates found"
-                  : "Registry is currently empty"}
-              </h3>
-              <p className="text-xs text-[#8d90a0] max-w-sm mx-auto">
-                {search || filterStatus !== "all"
-                  ? "Try adjusting your search query or verdict status filters."
-                  : "Ingest your first certificate to trigger OCR extraction and forensic verification."}
-              </p>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
             </div>
-            {(!search && filterStatus === "all") && (
-              <Link
-                href="/dashboard/upload"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[4px] transition mt-2 shadow-sm"
-              >
-                <UploadCloud size={13} />
-                <span>Upload First Certificate</span>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-[#000f21] text-[#8d90a0] border-b border-[#1b2b3f] font-mono text-[10px] uppercase">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Document Credential</th>
-                  <th className="px-4 py-3 font-medium">Verification ID</th>
-                  <th className="px-4 py-3 font-medium">Uploaded Timestamp</th>
-                  <th className="px-4 py-3 font-medium">Trust Score</th>
-                  <th className="px-4 py-3 font-medium">Forensic Verdict</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1b2b3f] text-[#c3c6d7]">
-                {filteredCertificates.map((c) => {
-                  const isDownloading = downloadingId === c.id;
+          ) : error ? (
+            <div className="p-8 text-center text-xs text-rose-600 space-y-2">
+              <AlertTriangle size={24} className="mx-auto" />
+              <p>{error}</p>
+              <Button onClick={() => fetchData()} variant="primary" size="sm" className="mt-2">
+                Retry Sync
+              </Button>
+            </div>
+          ) : filteredCertificates.length === 0 ? (
+            <div className="p-10">
+              <EmptyState
+                icon={<FileText size={32} className="text-slate-400" />}
+                title={
+                  search || filterStatus !== "all"
+                    ? "No matching certificates found"
+                    : "Registry is currently empty"
+                }
+                description={
+                  search || filterStatus !== "all"
+                    ? "Try adjusting your search query or verdict status filters."
+                    : "Ingest your first certificate to trigger OCR extraction and forensic verification."
+                }
+                action={
+                  <Link href="/dashboard/upload">
+                    <Button variant="primary" size="sm" icon={<UploadCloud size={13} />}>
+                      Upload First Certificate
+                    </Button>
+                  </Link>
+                }
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50 text-slate-500 text-[10px] uppercase font-mono">
+                    <TableHead className="px-5 py-3">Document Credential</TableHead>
+                    <TableHead className="px-5 py-3">Verification ID</TableHead>
+                    <TableHead className="px-5 py-3">Uploaded Timestamp</TableHead>
+                    <TableHead className="px-5 py-3">Trust Score</TableHead>
+                    <TableHead className="px-5 py-3">Forensic Verdict</TableHead>
+                    <TableHead className="px-5 py-3 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCertificates.map((c) => {
+                    const isDownloading = downloadingId === c.id;
+                    const verdictVariant =
+                      c.prediction_label === "genuine"
+                        ? "genuine"
+                        : c.prediction_label === "suspicious"
+                        ? "suspicious"
+                        : c.prediction_label === "fake"
+                        ? "fake"
+                        : "neutral";
 
-                  return (
-                    <tr
-                      key={c.id}
-                      className="hover:bg-[#102034]/60 transition-colors group"
-                    >
-                      {/* Document Name */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="p-1.5 rounded-[4px] bg-[#000f21] border border-[#1b2b3f] text-[#38bdf8] shrink-0">
-                            <FileText size={14} />
+                    return (
+                      <TableRow key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* Document Name */}
+                        <TableCell className="px-5 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 shrink-0">
+                              <FileText size={15} />
+                            </div>
+                            <div className="min-w-0">
+                              <Link
+                                href={`/dashboard/certificates/${c.id}`}
+                                className="font-medium text-slate-900 hover:text-indigo-600 transition truncate block max-w-xs sm:max-w-sm"
+                                title={c.original_filename}
+                              >
+                                {c.original_filename}
+                              </Link>
+                              <span className="text-[10px] font-mono text-slate-400 block truncate">
+                                UUID: {c.id.slice(0, 16)}…
+                              </span>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/dashboard/certificates/${c.id}`}
-                              className="font-medium text-[#d3e4fe] hover:text-[#38bdf8] transition truncate block max-w-xs sm:max-w-sm"
-                              title={c.original_filename}
-                            >
-                              {c.original_filename}
-                            </Link>
-                            <span className="text-[10px] font-mono text-[#8d90a0] block truncate">
-                              UUID: {c.id.slice(0, 16)}…
+                        </TableCell>
+
+                        {/* Verification ID */}
+                        <TableCell className="px-5 py-3.5 font-mono text-xs text-slate-500">
+                          {c.verification_id ? (
+                            <span className="text-indigo-600 font-semibold font-mono">
+                              {c.verification_id}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">N/A</span>
+                          )}
+                        </TableCell>
+
+                        {/* Timestamp */}
+                        <TableCell className="px-5 py-3.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={11} className="shrink-0 text-slate-400" />
+                            <span>
+                              {new Date(c.uploaded_at).toLocaleString([], {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </span>
                           </div>
-                        </div>
-                      </td>
+                        </TableCell>
 
-                      {/* Verification ID */}
-                      <td className="px-4 py-3 font-mono text-[11px] text-[#8d90a0]">
-                        {c.verification_id ? (
-                          <span className="text-[#38bdf8] font-semibold">
-                            {c.verification_id}
-                          </span>
-                        ) : (
-                          <span className="text-[#8d90a0]/60">N/A</span>
-                        )}
-                      </td>
-
-                      {/* Timestamp */}
-                      <td className="px-4 py-3 font-mono text-[11px] text-[#8d90a0] whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={11} className="shrink-0 text-[#8d90a0]/60" />
-                          <span>
-                            {new Date(c.uploaded_at).toLocaleString("en-IN", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Trust Score */}
-                      <td className="px-4 py-3 font-mono text-[11px]">
-                        {c.trust_score !== undefined ? (
-                          <div className="flex items-center gap-2">
+                        {/* Trust Score */}
+                        <TableCell className="px-5 py-3.5 font-mono text-xs">
+                          {c.trust_score !== undefined ? (
                             <span
-                              className={`font-bold ${
+                              className={`font-semibold ${
                                 c.trust_score >= 80
-                                  ? "text-[#4edea3]"
+                                  ? "text-emerald-700"
                                   : c.trust_score >= 50
-                                  ? "text-[#ffb95f]"
-                                  : "text-[#ffb4ab]"
+                                  ? "text-amber-700"
+                                  : "text-rose-700"
                               }`}
                             >
-                              {c.trust_score}/100
+                              {c.trust_score} / 100
                             </span>
-                          </div>
-                        ) : (
-                          <span className="text-[#8d90a0]/50">—</span>
-                        )}
-                      </td>
-
-                      {/* Final Verdict */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {renderVerdictBadge(c.prediction_label)}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {c.has_report && (
-                            <button
-                              onClick={() => handleDownload(c.id, c.verification_id)}
-                              disabled={isDownloading}
-                              className="px-2 py-1 text-[11px] font-medium bg-[#000f21] hover:bg-[#1b2b3f] text-[#38bdf8] rounded-[3px] border border-[#1b2b3f] transition flex items-center gap-1 disabled:opacity-50"
-                              title="Download official PDF verification report"
-                            >
-                              {isDownloading ? (
-                                <Loader2 size={11} className="animate-spin" />
-                              ) : (
-                                <Download size={11} />
-                              )}
-                              <span className="hidden sm:inline">PDF</span>
-                            </button>
+                          ) : (
+                            <span className="text-slate-400">—</span>
                           )}
+                        </TableCell>
 
-                          <Link
-                            href={`/dashboard/certificates/${c.id}`}
-                            className="px-2.5 py-1 text-[11px] font-medium bg-[#102034] hover:bg-[#1b2b3f] text-[#d3e4fe] rounded-[3px] border border-[#1b2b3f] transition inline-flex items-center gap-1"
-                            title="Inspect in AI Forensic Cockpit"
-                          >
-                            <span>Inspect</span>
-                            <ExternalLink size={10} className="text-[#8d90a0]" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                        {/* Final Verdict */}
+                        <TableCell className="px-5 py-3.5 whitespace-nowrap">
+                          <Badge variant={verdictVariant} size="sm">
+                            {c.prediction_label || "PENDING"}
+                          </Badge>
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {c.has_report && (
+                              <button
+                                onClick={() => handleDownload(c.id, c.verification_id)}
+                                disabled={isDownloading}
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition flex items-center gap-1 disabled:opacity-50"
+                                title="Download official PDF verification report"
+                              >
+                                {isDownloading ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <Download size={12} />
+                                )}
+                                <span className="text-xs font-medium hidden sm:inline">PDF</span>
+                              </button>
+                            )}
+
+                            <Link
+                              href={`/dashboard/certificates/${c.id}`}
+                              className="px-2.5 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded transition inline-flex items-center gap-1"
+                              title="Inspect in AI Forensic Cockpit"
+                            >
+                              <span>Inspect</span>
+                              <ExternalLink size={11} />
+                            </Link>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </main>
   );
 }

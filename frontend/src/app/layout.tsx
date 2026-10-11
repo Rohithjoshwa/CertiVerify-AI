@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${sora.variable}`}>
-      <body className="min-h-screen bg-[#000f21] text-[#c3c6d7] antialiased font-sans selection:bg-indigo-900 selection:text-white">
+      <body className="min-h-screen bg-[#FAFAFA] text-[#0F172A] antialiased font-sans selection:bg-indigo-100 selection:text-indigo-900">
         <SplashScreen />
         {children}
       </body>

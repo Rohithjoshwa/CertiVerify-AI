@@ -6,11 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   FileText,
   Download,
-  ShieldCheck,
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  Loader2,
   FileQuestion,
   Sparkles,
   Lock,
@@ -27,6 +25,11 @@ import {
   VerificationReportResponse,
   VerificationResultResponse,
 } from "@/lib/api";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function VerificationReportsPage() {
   const router = useRouter();
@@ -83,7 +86,7 @@ export default function VerificationReportsPage() {
     try {
       const { data } = await reportApi.generate(selectedCertId);
       setReport(data);
-    } catch (err) {
+    } catch {
       alert("Failed to generate verification report.");
     } finally {
       setGenerating(false);
@@ -110,32 +113,34 @@ export default function VerificationReportsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b1c30] border border-[#1b2b3f] p-5 rounded-[8px]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-[#8d90a0] mb-1">
-            <Link href="/dashboard" className="hover:text-[#d3e4fe]">Dashboard</Link>
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400 mb-1.5">
+            <Link href="/dashboard" className="hover:text-indigo-600 transition-colors">
+              Dashboard
+            </Link>
             <span>/</span>
-            <span className="text-[#38bdf8]">Verification Reports</span>
+            <span className="text-indigo-600 font-semibold">Verification Reports</span>
           </div>
-          <h1 className="text-xl font-bold text-[#d3e4fe] font-sans flex items-center gap-2">
-            <FileText size={22} className="text-[#38bdf8]" />
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+            <FileText size={22} className="text-indigo-600" />
             Official Verification Reports & Audit Certificates
           </h1>
-          <p className="text-xs text-[#8d90a0]">
+          <p className="text-xs text-slate-500 mt-1">
             Generate and download cryptographically signed verification reports with SHA-256 integrity proofs.
           </p>
         </div>
 
         {/* Certificate Selector Dropdown */}
-        <div className="space-y-1 shrink-0">
-          <label className="text-[10px] font-mono text-[#8d90a0] uppercase block font-semibold">
+        <div className="w-64 shrink-0">
+          <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">
             Select Certificate
           </label>
           <select
             value={selectedCertId}
             onChange={(e) => setSelectedCertId(e.target.value)}
             disabled={loadingCerts || certificates.length === 0}
-            className="bg-[#000f21] border border-[#1b2b3f] text-[#d3e4fe] text-xs px-3 py-1.5 rounded focus:outline-none focus:border-[#38bdf8] font-mono max-w-xs"
+            className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-2 rounded-lg font-mono focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/20"
           >
             {loadingCerts ? (
               <option>Loading certificates...</option>
@@ -154,180 +159,203 @@ export default function VerificationReportsPage() {
 
       {/* Main Report Preview Layout */}
       {!selectedCert ? (
-        <div className="bg-[#0b1c30] border border-[#1b2b3f] p-12 text-center rounded-[8px] space-y-3">
-          <FileQuestion size={36} className="text-[#8d90a0] mx-auto opacity-50" />
-          <p className="text-xs text-[#8d90a0]">No certificate selected. Please upload or pick a certificate.</p>
-        </div>
+        <Card className="p-10">
+          <EmptyState
+            icon={<FileQuestion size={36} className="text-slate-400" />}
+            title="No Certificate Selected"
+            description="Please upload or choose a certificate from the dropdown above."
+            action={
+              <Link href="/dashboard/upload">
+                <Button variant="primary" size="sm">
+                  Upload Certificate
+                </Button>
+              </Link>
+            }
+          />
+        </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Report Document Card (8 cols) */}
-          <div className="lg:col-span-8 bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-6 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-[#1b2b3f]">
+          <Card className="lg:col-span-8">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-[#102034] text-[#38bdf8] rounded border border-[#1b2b3f]">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg">
                   <FileText size={24} />
                 </div>
                 <div>
-                  <span className="font-mono text-[10px] text-[#4edea3] uppercase font-bold tracking-wider">
+                  <span className="font-mono text-[10px] text-emerald-700 uppercase font-bold tracking-wider">
                     OFFICIAL REPORT PREVIEW
                   </span>
-                  <h2 className="text-base font-bold text-[#d3e4fe]">{selectedCert.original_filename}</h2>
+                  <CardTitle className="text-base font-bold text-slate-900">
+                    {selectedCert.original_filename}
+                  </CardTitle>
                 </div>
               </div>
 
               {/* Status Badge */}
               {report ? (
-                <span className="font-mono text-[10px] font-bold px-2.5 py-1 bg-[#4edea3]/10 text-[#4edea3] border border-[#4edea3]/30 rounded uppercase flex items-center gap-1">
-                  <CheckCircle2 size={12} />
+                <Badge variant="genuine" size="sm">
+                  <CheckCircle2 size={12} className="mr-1" />
                   REPORT GENERATED
-                </span>
+                </Badge>
               ) : (
-                <span className="font-mono text-[10px] font-bold px-2.5 py-1 bg-[#ffb95f]/10 text-[#ffb95f] border border-[#ffb95f]/30 rounded uppercase flex items-center gap-1">
-                  <AlertTriangle size={12} />
+                <Badge variant="suspicious" size="sm">
+                  <AlertTriangle size={12} className="mr-1" />
                   NOT GENERATED YET
-                </span>
+                </Badge>
               )}
-            </div>
+            </CardHeader>
 
-            {/* Certificate Metadata */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
-              <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded">
-                <span className="text-[10px] text-[#8d90a0] block">CERTIFICATE ID</span>
-                <span className="font-bold text-[#d3e4fe]">{selectedCert.id.slice(0, 12)}…</span>
-              </div>
-              <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded">
-                <span className="text-[10px] text-[#8d90a0] block">FILE FORMAT</span>
-                <span className="font-bold text-[#38bdf8] uppercase">{selectedCert.file_type}</span>
-              </div>
-              <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded">
-                <span className="text-[10px] text-[#8d90a0] block">UPLOADED AT</span>
-                <span className="text-[#8d90a0]">{new Date(selectedCert.uploaded_at).toLocaleDateString()}</span>
-              </div>
-            </div>
-
-            {/* Cryptographic SHA-256 Hash */}
-            <div className="space-y-1.5 font-mono text-xs">
-              <div className="flex items-center justify-between text-[10px] text-[#8d90a0]">
-                <span>SHA-256 INTEGRITY FINGERPRINT</span>
-                <button
-                  onClick={() => handleCopyHash(selectedCert.sha256_hash)}
-                  className="text-[#38bdf8] hover:underline flex items-center gap-1"
-                >
-                  {copiedHash ? <Check size={10} /> : <Copy size={10} />}
-                  {copiedHash ? "Copied" : "Copy Hash"}
-                </button>
-              </div>
-              <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded text-[11px] text-[#38bdf8] break-all">
-                {selectedCert.sha256_hash}
-              </div>
-            </div>
-
-            {/* Verification Pipeline Outcomes Summary */}
-            <div className="space-y-3 pt-2">
-              <h3 className="text-xs font-mono uppercase text-[#8d90a0] font-bold">
-                Verification Pipeline Outcomes
-              </h3>
-              {verification ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
-                  <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded">
-                    <span className="text-[10px] text-[#8d90a0] block">QR VERIFICATION</span>
-                    <span className={`font-bold ${verification.qr_valid ? "text-[#4edea3]" : "text-[#ffb95f]"}`}>
-                      {verification.qr_present ? (verification.qr_valid ? "VERIFIED" : "INVALID") : "NO QR"}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded">
-                    <span className="text-[10px] text-[#8d90a0] block">BLOCKCHAIN MATCH</span>
-                    <span className={`font-bold ${verification.blockchain_match ? "text-[#4edea3]" : "text-[#8d90a0]"}`}>
-                      {verification.blockchain_status || "NOT REGISTERED"}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded">
-                    <span className="text-[10px] text-[#8d90a0] block">TAMPERING SCORE</span>
-                    <span className={`font-bold ${verification.tampering_score && verification.tampering_score > 30 ? "text-[#ffb4ab]" : "text-[#4edea3]"}`}>
-                      {verification.tampering_score ?? 0} / 100
-                    </span>
-                  </div>
+            <CardContent className="p-6 space-y-6">
+              {/* Certificate Metadata */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <span className="text-[10px] text-slate-400 block font-semibold">CERTIFICATE ID</span>
+                  <span className="font-bold text-slate-900">{selectedCert.id.slice(0, 12)}…</span>
                 </div>
-              ) : (
-                <div className="p-3 bg-[#000f21] border border-[#1b2b3f] rounded text-xs text-[#8d90a0]">
-                  Verification outcome telemetry will populate after pipeline run.
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <span className="text-[10px] text-slate-400 block font-semibold">FILE FORMAT</span>
+                  <span className="font-bold text-indigo-700 uppercase">{selectedCert.file_type}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <span className="text-[10px] text-slate-400 block font-semibold">UPLOADED AT</span>
+                  <span className="text-slate-600">{new Date(selectedCert.uploaded_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              {/* Cryptographic SHA-256 Hash */}
+              <div className="space-y-1.5 font-mono text-xs">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-sans">
+                  <span className="font-semibold uppercase">SHA-256 INTEGRITY FINGERPRINT</span>
+                  <button
+                    onClick={() => handleCopyHash(selectedCert.sha256_hash)}
+                    className="text-indigo-600 hover:underline flex items-center gap-1"
+                  >
+                    {copiedHash ? <Check size={11} /> : <Copy size={11} />}
+                    {copiedHash ? "Copied" : "Copy Hash"}
+                  </button>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-indigo-900 break-all">
+                  {selectedCert.sha256_hash}
+                </div>
+              </div>
+
+              {/* Verification Pipeline Outcomes Summary */}
+              <div className="space-y-3 pt-2">
+                <h3 className="text-xs font-mono uppercase text-slate-500 font-bold">
+                  Verification Pipeline Outcomes
+                </h3>
+                {verification ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <span className="text-[10px] text-slate-400 block font-semibold">QR VERIFICATION</span>
+                      <span className={`font-bold ${verification.qr_valid ? "text-emerald-700" : "text-amber-700"}`}>
+                        {verification.qr_present ? (verification.qr_valid ? "VERIFIED" : "INVALID") : "NO QR"}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <span className="text-[10px] text-slate-400 block font-semibold">BLOCKCHAIN MATCH</span>
+                      <span className={`font-bold ${verification.blockchain_match ? "text-emerald-700" : "text-slate-500"}`}>
+                        {verification.blockchain_status || "NOT REGISTERED"}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <span className="text-[10px] text-slate-400 block font-semibold">TAMPERING SCORE</span>
+                      <span className={`font-bold ${verification.tampering_score && verification.tampering_score > 30 ? "text-rose-700" : "text-emerald-700"}`}>
+                        {verification.tampering_score ?? 0} / 100
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500">
+                    Verification outcome telemetry will populate after pipeline run.
+                  </div>
+                )}
+              </div>
+
+              {/* Report Digital Signature (if generated) */}
+              {report && (
+                <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-800">
+                    <Lock size={14} />
+                    <span>DIGITAL SIGNATURE & AUDIT REF</span>
+                  </div>
+                  <p className="font-mono text-[11px] text-emerald-900 break-all">
+                    Sig: {report.digital_signature || `CERTIVERIFY-SIG-${report.id.slice(0, 16)}`}
+                  </p>
+                  <div className="text-[11px] font-mono text-slate-500">
+                    Generated: {new Date(report.generated_at).toLocaleString()}
+                  </div>
                 </div>
               )}
-            </div>
-
-            {/* Report Digital Signature (if generated) */}
-            {report && (
-              <div className="p-4 bg-[#000f21] border border-[#4edea3]/30 rounded space-y-2">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#4edea3]">
-                  <Lock size={14} />
-                  <span>DIGITAL SIGNATURE & AUDIT REF</span>
-                </div>
-                <p className="font-mono text-[10px] text-[#8d90a0] break-all">
-                  Sig: {report.digital_signature || `CERTIVERIFY-SIG-${report.id.slice(0, 16)}`}
-                </p>
-                <div className="text-[10px] font-mono text-[#8d90a0]">
-                  Generated: {new Date(report.generated_at).toLocaleString()}
-                </div>
-              </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Right Column: Actions Panel (4 cols) */}
-          <div className="lg:col-span-4 bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-[#d3e4fe] pb-2 border-b border-[#1b2b3f]">
-              Report Generation & Actions
-            </h3>
+          <Card className="lg:col-span-4 h-fit">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-semibold text-slate-900">
+                Report Generation & Actions
+              </CardTitle>
+            </CardHeader>
 
-            <div className="space-y-3 text-xs text-[#8d90a0]">
-              <p>
-                Verification reports compile all OCR field extractions, tamper ELA heatmaps, blockchain logs, and AI predictions into a signed PDF document.
+            <CardContent className="p-5 space-y-4 text-xs text-slate-600">
+              <p className="leading-relaxed">
+                Verification reports compile all OCR field extractions, tamper ELA heatmaps, blockchain logs, and AI predictions into an official signed PDF dossier.
               </p>
 
               {report ? (
-                <button
+                <Button
                   onClick={handleDownloadReport}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4edea3] hover:bg-emerald-400 text-[#000f21] font-bold text-xs rounded transition shadow-lg"
+                  variant="primary"
+                  size="md"
+                  icon={<Download size={15} />}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 shadow-sm"
                 >
-                  <Download size={15} />
-                  <span>Download Signed PDF Report</span>
-                </button>
+                  Download Signed PDF Report
+                </Button>
               ) : (
-                <button
+                <Button
                   onClick={handleGenerateReport}
                   disabled={generating}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2563eb] hover:bg-blue-600 text-white font-semibold text-xs rounded transition shadow-lg disabled:opacity-50"
+                  loading={generating}
+                  variant="primary"
+                  size="md"
+                  icon={<Sparkles size={15} />}
+                  className="w-full shadow-sm"
                 >
-                  {generating ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <Sparkles size={15} />
-                  )}
-                  <span>{generating ? "Generating..." : "Generate PDF Report"}</span>
-                </button>
+                  {generating ? "Generating..." : "Generate PDF Report"}
+                </Button>
               )}
 
               {report && (
-                <button
+                <Button
                   onClick={handleGenerateReport}
                   disabled={generating}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-[#000f21] hover:bg-[#102034] text-[#8d90a0] hover:text-[#d3e4fe] border border-[#1b2b3f] font-mono text-[11px] rounded transition"
+                  loading={generating}
+                  variant="ghost"
+                  size="sm"
+                  icon={<RefreshCw size={12} />}
+                  className="w-full text-xs"
                 >
-                  <RefreshCw size={12} className={generating ? "animate-spin" : ""} />
-                  <span>Re-Generate Report</span>
-                </button>
+                  Re-Generate Report
+                </Button>
               )}
 
-              <Link
-                href={`/dashboard/certificates/${selectedCert.id}`}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#000f21] hover:bg-[#102034] text-[#38bdf8] border border-[#1b2b3f] font-medium text-xs rounded transition"
-              >
-                <span>Inspect in Forensic Cockpit</span>
-                <ExternalLink size={13} />
+              <Link href={`/dashboard/certificates/${selectedCert.id}`}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<ExternalLink size={13} />}
+                  className="w-full mt-2"
+                >
+                  Inspect in Forensic Cockpit
+                </Button>
               </Link>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
