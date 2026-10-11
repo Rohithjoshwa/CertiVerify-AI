@@ -116,6 +116,7 @@ class TamperingResult:
     # Additive new fields
     risk_level: str = "UNKNOWN"
     confidence: float = 0.0
+    status: str = "analyzed"                             # analyzed | not_applicable_for_pdf_text_layer | failed: <reason>
     image_quality: dict = field(default_factory=dict)
     ela: dict = field(default_factory=dict)
     copy_paste: dict = field(default_factory=dict)
@@ -132,6 +133,22 @@ class TamperingResult:
 # Main entry point — backward-compatible signature, new optional params
 # ---------------------------------------------------------------------------
 
+def is_pdf_pure_text_layer(file_bytes: bytes, file_type: str) -> bool:
+    """Detect if a PDF is a native vector text document with no raster images to manipulate."""
+    ft = file_type.lower().lstrip(".")
+    if ft != "pdf" or not file_bytes:
+        return False
+    try:
+        import fitz
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        has_text = any(len(p.get_text().strip()) > 30 for p in doc)
+        has_images = any(len(p.get_images()) > 0 for p in doc)
+        doc.close()
+        return has_text and not has_images
+    except Exception:
+        return False
+
+
 def analyze_tampering(
     file_bytes: bytes,
     file_type: str,
@@ -139,6 +156,7 @@ def analyze_tampering(
     doc_type: str | None = None,
     ocr_fields: dict | None = None,
     bbox_results: list | None = None,
+    allow_pdf_text_layer_check: bool = True,
 ) -> TamperingResult:
     """
     Full multi-signal tampering analysis.
@@ -151,7 +169,21 @@ def analyze_tampering(
     doc_type     : Optional document type (for structure check, PART I)
     ocr_fields   : Optional OCR-extracted fields dict (for structure check)
     bbox_results : Optional OCR bounding boxes (for font consistency, PART D)
+    allow_pdf_text_layer_check : If True, pure digital PDF with no raster images returns 'not_applicable_for_pdf_text_layer'
     """
+    if allow_pdf_text_layer_check and is_pdf_pure_text_layer(file_bytes, file_type):
+        meta = _check_metadata_full(file_bytes, file_type)
+        return TamperingResult(
+            score=0.0,
+            flags=["Image forensics not applicable: digital PDF vector text layer with no raster images"],
+            ela_heatmap_png=None,
+            risk_level="NOT_APPLICABLE",
+            confidence=95.0,
+            status="not_applicable_for_pdf_text_layer",
+            metadata_detail=meta,
+            findings=[Finding("metadata", meta["status"], meta["score"], 95, "Digital vector PDF text layer")],
+        )
+
     t_start = time.time()
     flags: list[str] = []
     findings: list[Finding] = []
@@ -326,6 +358,7 @@ def analyze_tampering(
         ela_heatmap_png=ela_png,
         risk_level=risk_level,
         confidence=overall_confidence,
+        status="analyzed",
         image_quality=iq,
         ela={
             "score": round(ela_score, 2),

@@ -31,6 +31,7 @@ class TrustScoreInputs:
     qr_present: bool | None = None
     qr_valid: bool | None = None
     tampering_score: float | None = None                # 0-100, higher = worse
+    tampering_status: str | None = None                 # analyzed | not_applicable_for_pdf_text_layer | failed: <reason>
     is_duplicate: bool | None = None
     duplicate_status: str | None = None
     duplicate_same_owner: bool | None = None
@@ -48,6 +49,9 @@ class TrustScoreResult:
     breakdown: dict = field(default_factory=dict)        # effective weight per factor
     factor_trust_values: dict = field(default_factory=dict)   # raw 0-100 trust per factor
     evidence_breakdown: dict = field(default_factory=dict)    # {factor: {score, status}}
+    checks_completed: int = 0
+    checks_total: int = 0
+    partial_verification_note: str = ""
 
 
 # Spec-aligned nominal weights (sum = 1.0)
@@ -166,7 +170,24 @@ def compute_trust_score(inputs: TrustScoreInputs) -> TrustScoreResult:
         evidence["blockchain"] = {"score": None, "status": "NOT_AVAILABLE", "display_status": "UNAVAILABLE"}
 
     # ── 7. Tampering analysis ────────────────────────────────────────────────
-    if inputs.tampering_score is not None:
+    t_status = (inputs.tampering_status or "").lower()
+    if t_status == "not_applicable_for_pdf_text_layer":
+        evidence["tampering"] = {
+            "score": None,
+            "trust": None,
+            "status": "not_applicable_for_pdf_text_layer",
+            "display_status": "NOT_APPLICABLE",
+            "label": "Not applicable for PDF text layer",
+        }
+    elif t_status.startswith("failed"):
+        evidence["tampering"] = {
+            "score": None,
+            "trust": None,
+            "status": inputs.tampering_status,
+            "display_status": "FAILED",
+            "label": inputs.tampering_status,
+        }
+    elif inputs.tampering_score is not None:
         tamp_trust = round(100.0 - min(max(inputs.tampering_score, 0), 100), 2)
         tamp_status = "PASS" if inputs.tampering_score < 30 else ("WARN" if inputs.tampering_score < 60 else "FAIL")
         trust_values["tampering"] = tamp_trust
@@ -175,9 +196,10 @@ def compute_trust_score(inputs: TrustScoreInputs) -> TrustScoreResult:
             "trust": tamp_trust,
             "status": "LOW_RISK" if tamp_status == "PASS" else ("MEDIUM_RISK" if tamp_status == "WARN" else "HIGH_RISK"),
             "display_status": tamp_status,
+            "label": "analyzed",
         }
     else:
-        evidence["tampering"] = {"score": None, "status": "NOT_CHECKED", "display_status": "UNAVAILABLE"}
+        evidence["tampering"] = {"score": None, "status": "NOT_CHECKED", "display_status": "UNAVAILABLE", "label": "Unavailable"}
 
     # ── 8. Duplicate detection ───────────────────────────────────────────────
     if inputs.is_duplicate is not None:
@@ -294,11 +316,41 @@ def compute_trust_score(inputs: TrustScoreInputs) -> TrustScoreResult:
         "display_status": "PASS" if not _has_metadata_risk(inputs) else "WARN",
     }
 
+    # ── Partial verification calculation ─────────────────────────────────────
+    applicable_checks = ["ocr", "classification", "field_extraction", "tampering", "duplicate"]
+    if inputs.qr_present is not None:
+        applicable_checks.append("qr")
+    if inputs.blockchain_status is not None and inputs.blockchain_status != "unavailable":
+        applicable_checks.append("blockchain")
+    if inputs.document_consistency_pct is not None:
+        applicable_checks.append("comparison")
+
+    total_checks = len(applicable_checks)
+    completed_checks = 0
+    for chk in applicable_checks:
+        ev = evidence.get(chk, {})
+        st = str(ev.get("status", "")).lower()
+        dst = str(ev.get("display_status", "")).upper()
+        if st in ("unavailable", "not_checked", "not_available") or dst in ("UNAVAILABLE", "FAILED") or st.startswith("failed"):
+            continue
+        completed_checks += 1
+
+    partial_note = f"Partial verification: {completed_checks} of {total_checks} checks completed"
+    evidence["_partial_verification"] = {
+        "completed": completed_checks,
+        "total": total_checks,
+        "note": partial_note,
+        "is_partial": completed_checks < total_checks,
+    }
+
     return TrustScoreResult(
         score=score,
         breakdown=full_weights,
         factor_trust_values=trust_values,
         evidence_breakdown=evidence,
+        checks_completed=completed_checks,
+        checks_total=total_checks,
+        partial_verification_note=partial_note,
     )
 
 

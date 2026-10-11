@@ -241,19 +241,30 @@ async def run_tampering_detection(
         )
     except Exception as e:
         logger.error("Tampering analysis failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=422, detail=f"Tampering analysis failed: {e}")
+        from app.services.tampering_detection import TamperingResult
+        result = TamperingResult(
+            score=0.0,
+            flags=[f"Tampering analysis failed: {str(e)}"],
+            ela_heatmap_png=None,
+            risk_level="FAILED",
+            confidence=0.0,
+            status=f"failed: {str(e)}",
+        )
 
     logger.info(
-        "Tampering done | cert_id=%s | score=%.1f | risk=%s | flags=%d",
-        certificate_id, result.score, result.risk_level, len(result.flags),
+        "Tampering done | cert_id=%s | score=%.1f | risk=%s | status=%s | flags=%d",
+        certificate_id, result.score, result.risk_level, result.status, len(result.flags),
     )
 
     verification_row = await _get_or_create_verification_row(cert.id, db)
-    verification_row.tampering_score = result.score
+    # If not applicable for text layer or failed, score is None or 0.0
+    verification_row.tampering_score = result.score if result.status == "analyzed" else None
     verification_row.tampering_flags = result.flags
     verification_row.tampering_risk_level = result.risk_level
     verification_row.tampering_confidence = result.confidence
     verification_row.tampering_detail = {
+        "status":             result.status,
+        "tampering_status":   result.status,
         "image_quality":      result.image_quality,
         "ela":                result.ela,
         "copy_paste":         result.copy_paste,

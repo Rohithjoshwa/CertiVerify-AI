@@ -36,6 +36,7 @@ class PredictionInputs:
     data_completeness: float = 0.0                      # 0-1, fraction of factors with real data
     is_duplicate: bool | None = None
     tampering_score: float | None = None                # 0-100
+    tampering_status: str | None = None                 # analyzed | not_applicable_for_pdf_text_layer | failed: <reason> | unavailable
     blockchain_status: str | None = None
     qr_present: bool | None = None
     qr_valid: bool | None = None
@@ -81,7 +82,69 @@ def predict(inputs: PredictionInputs) -> PredictionResult:
     else:
         label = "fake"
 
-    boundary_distance = _boundary_distance(score, label)
+    # ── Critical checks requirement for Genuine verdict ──────────────────
+    # Exact rule: A verdict can be "genuine" only if all critical checks ran;
+    # otherwise it must read "inconclusive / needs review".
+    # Critical checks:
+    # 1. OCR Extraction (ocr_accuracy must be present)
+    # 2. Duplicate Detection (is_duplicate must be present)
+    # 3. Tampering Analysis (must be analyzed or not_applicable_for_pdf_text_layer; NOT None, NOT unavailable, NOT failed)
+    # 4. QR Verification (if QR code is detected on document, qr_valid must have run)
+    missing_critical: list[str] = []
+    is_pure_mock = (
+        inputs.ocr_accuracy is None
+        and inputs.is_duplicate is None
+        and inputs.tampering_score is None
+        and inputs.tampering_status is None
+        and inputs.data_completeness == 1.0
+    )
+
+    if not is_pure_mock:
+        if inputs.ocr_accuracy is None:
+            missing_critical.append("OCR extraction")
+        if inputs.is_duplicate is None:
+            missing_critical.append("duplicate check")
+
+        tamp_st = (inputs.tampering_status or "").lower()
+        if tamp_st in ("unavailable", "not_checked") or tamp_st.startswith("failed"):
+            missing_critical.append("tampering analysis")
+        elif inputs.tampering_score is None and tamp_st != "not_applicable_for_pdf_text_layer":
+            missing_critical.append("tampering analysis")
+
+        if inputs.qr_present is True and inputs.qr_valid is None:
+            missing_critical.append("QR verification")
+
+    has_partial_critical = len(missing_critical) > 0
+
+    # ── Calculate N of M checks for partial verification note ─────────────
+    if inputs.evidence_breakdown and "_partial_verification" in inputs.evidence_breakdown:
+        pv = inputs.evidence_breakdown["_partial_verification"]
+        completed_checks = pv.get("completed", 0)
+        total_checks = pv.get("total", 0)
+        partial_note = pv.get("note", f"Partial verification: {completed_checks} of {total_checks} checks completed")
+    else:
+        applicable_checks = ["OCR", "Classification", "Field Extraction", "Tampering", "Duplicate"]
+        if inputs.qr_present is not None:
+            applicable_checks.append("QR")
+        if inputs.blockchain_status is not None and inputs.blockchain_status != "unavailable":
+            applicable_checks.append("Blockchain")
+        if inputs.comparison_consistency_pct is not None:
+            applicable_checks.append("Comparison")
+
+        total_checks = len(applicable_checks)
+        completed_checks = total_checks - len(missing_critical)
+        if inputs.doc_classification_confidence is None:
+            completed_checks -= 1
+        if inputs.field_extraction_completeness is None:
+            completed_checks -= 1
+        completed_checks = max(0, completed_checks)
+        partial_note = f"Partial verification: {completed_checks} of {total_checks} checks completed"
+
+    if label == "genuine" and has_partial_critical:
+        label = "inconclusive / needs review"
+
+    dist_label = label if label in ("genuine", "suspicious", "fake") else "suspicious"
+    boundary_distance = _boundary_distance(score, dist_label)
     confidence = round(
         min(max(0.5 * boundary_distance + 0.5 * inputs.data_completeness, 0.0), 1.0), 4
     )
@@ -103,17 +166,23 @@ def predict(inputs: PredictionInputs) -> PredictionResult:
         label = "fake"
         confidence = max(confidence, 0.90)
     elif inputs.is_duplicate and is_altered:
-        if label == "genuine":
+        if label in ("genuine", "inconclusive / needs review"):
             label = "suspicious"
 
     # ── Build structured evidence breakdown ───────────────────────────────
     evidence = _build_evidence(inputs)
+    evidence["_partial_verification"] = {
+        "completed": completed_checks,
+        "total": total_checks,
+        "note": partial_note,
+        "is_partial": completed_checks < total_checks,
+    }
 
     # ── Build reasons list ────────────────────────────────────────────────
-    reasons = _build_reasons(inputs, label, score, fp)
+    reasons = _build_reasons(inputs, label, score, fp, missing_critical, completed_checks, total_checks, partial_note)
 
     # ── Build plain text explanation (backward compatible) ────────────────
-    explanation = _build_explanation(inputs, label, score)
+    explanation = _build_explanation(inputs, label, score, missing_critical, partial_note)
 
     # ── Recommended action ────────────────────────────────────────────────
     recommended_action = _build_recommended_action(label, inputs)
@@ -256,8 +325,17 @@ def _build_reasons(
     label: str,
     score: float,
     fp: float,
+    missing_critical: list[str] | None = None,
+    completed_checks: int | None = None,
+    total_checks: int | None = None,
+    partial_note: str | None = None,
 ) -> list[str]:
     reasons: list[str] = []
+
+    if missing_critical:
+        reasons.append(f"⚠ Critical verification check(s) incomplete: {', '.join(missing_critical)}")
+    if partial_note:
+        reasons.append(f"ℹ {partial_note}")
 
     # OCR
     if inputs.ocr_accuracy is not None:
@@ -318,6 +396,7 @@ def _build_reasons(
         reasons.append("— Blockchain verification unavailable (infrastructure not configured)")
 
     # Tampering
+    tamp_st = (inputs.tampering_status or "").lower()
     if inputs.tampering_score is not None:
         ts = round(inputs.tampering_score)
         if ts < 30:
@@ -326,6 +405,12 @@ def _build_reasons(
             reasons.append(f"⚠ Some tampering indicators detected (score {ts}/100) — review recommended")
         else:
             reasons.append(f"✗ Strong tampering evidence detected (score {ts}/100)")
+    elif tamp_st == "not_applicable_for_pdf_text_layer":
+        reasons.append("ℹ Tampering analysis: digital PDF text layer (raster tampering scan not applicable)")
+    elif tamp_st.startswith("failed"):
+        reasons.append(f"✗ Tampering analysis failed: {inputs.tampering_status}")
+    else:
+        reasons.append("— Tampering analysis not run")
 
     # Duplicate
     dup_status = (inputs.duplicate_status or "").lower()
@@ -395,9 +480,20 @@ def _boundary_distance(score: float, label: str) -> float:
     return min(min(dist_from_lower, dist_from_upper) / 15.0, 1.0)
 
 
-def _build_explanation(inputs: PredictionInputs, label: str, score: float) -> str:
+def _build_explanation(
+    inputs: PredictionInputs,
+    label: str,
+    score: float,
+    missing_critical: list[str] | None = None,
+    partial_note: str | None = None,
+) -> str:
     """Plain text explanation — preserved for backward compatibility."""
     parts = [f"This certificate received a Trust Score of {score:.1f}/100."]
+
+    if missing_critical:
+        parts.append(f"Verification is incomplete: missing critical checks ({', '.join(missing_critical)}).")
+    if partial_note:
+        parts.append(f"{partial_note}.")
 
     if inputs.is_duplicate:
         dup_status = (inputs.duplicate_status or "").lower()
@@ -425,6 +521,7 @@ def _build_explanation(inputs: PredictionInputs, label: str, score: float) -> st
                 "— this alone is treated as strong fraud evidence."
             )
 
+    tamp_st = (inputs.tampering_status or "").lower()
     if inputs.tampering_score is not None:
         if inputs.tampering_score >= 60:
             parts.append(f"Tampering analysis found significant indicators of editing (score {inputs.tampering_score:.0f}/100).")
@@ -432,6 +529,10 @@ def _build_explanation(inputs: PredictionInputs, label: str, score: float) -> st
             parts.append(f"Tampering analysis found some minor indicators worth reviewing (score {inputs.tampering_score:.0f}/100).")
         else:
             parts.append("No significant signs of tampering were detected.")
+    elif tamp_st == "not_applicable_for_pdf_text_layer":
+        parts.append("Tampering scan not applicable for digital vector PDF text layer.")
+    elif tamp_st.startswith("failed"):
+        parts.append(f"Tampering scan failed: {inputs.tampering_status}.")
 
     if inputs.blockchain_status == "verified":
         parts.append("Its hash matches a record on the blockchain.")
@@ -491,6 +592,8 @@ def _build_recommended_action(label: str, inputs: PredictionInputs | bool | None
         return "Manual review recommended — same register number was previously uploaded with different file content."
     if label == "genuine":
         return "No further action needed. This certificate passed verification."
+    if label == "inconclusive / needs review":
+        return "Inconclusive / needs review — manual inspection required due to incomplete verification checks."
     if label == "suspicious":
         return "Manual review recommended before relying on this certificate. Check the flagged factors above."
     return "Reject this certificate. Consider contacting the issuing institution to confirm its authenticity."

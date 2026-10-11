@@ -144,6 +144,7 @@ async def run_prediction(
         duplicate_type=dup_type,
         duplicate_match_reason=dup_reason,
         tampering_score=verification_row.tampering_score if verification_row else None,
+        tampering_status=verification_row.tampering_status if verification_row else None,
         blockchain_status=verification_row.blockchain_status if verification_row else None,
         qr_present=verification_row.qr_present if verification_row else None,
         qr_valid=verification_row.qr_valid if verification_row else None,

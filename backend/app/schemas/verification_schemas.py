@@ -32,6 +32,7 @@ class VerificationResultResponse(BaseModel):
     ela_heatmap_path: Optional[str] = None
     tampering_risk_level: Optional[str] = None       # LOW | MINOR_ANOMALIES | MODERATE_RISK | HIGH_RISK | VERY_HIGH_RISK
     tampering_confidence: Optional[float] = None     # 0-100 overall detection confidence
+    tampering_status: Optional[str] = None           # analyzed | not_applicable_for_pdf_text_layer | failed: <reason> | unavailable
     tampering_detail: Optional[dict[str, Any]] = None  # full structured result JSON
 
     # Duplicate Detection

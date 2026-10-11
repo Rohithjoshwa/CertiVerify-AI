@@ -79,6 +79,7 @@ async def run_trust_score(
         qr_present=verification_row.qr_present if verification_row else None,
         qr_valid=verification_row.qr_valid if verification_row else None,
         tampering_score=verification_row.tampering_score if verification_row else None,
+        tampering_status=verification_row.tampering_status if verification_row else None,
         is_duplicate=verification_row.is_duplicate if verification_row else None,
         duplicate_status=dup_status,
         duplicate_same_owner=dup_same_owner,

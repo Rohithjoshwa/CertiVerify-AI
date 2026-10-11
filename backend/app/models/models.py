@@ -334,6 +334,17 @@ class VerificationResult(Base):
             return self.duplicate_detail.get("duplicate_status")
         return "DUPLICATE" if self.is_duplicate else "NO_DUPLICATE"
 
+    @property
+    def tampering_status(self) -> str:
+        if self.tampering_detail and isinstance(self.tampering_detail, dict):
+            st = self.tampering_detail.get("tampering_status") or self.tampering_detail.get("status")
+            if st:
+                return st
+        if self.tampering_risk_level == "SKIPPED":
+            return "not_applicable_for_pdf_text_layer"
+        if self.tampering_score is not None:
+            return "analyzed"
+        return "unavailable"
 
     @property
     def reason(self) -> str | None:
@@ -390,6 +401,7 @@ class PredictionLabel(str, enum.Enum):
     GENUINE = "genuine"
     SUSPICIOUS = "suspicious"
     FAKE = "fake"
+    INCONCLUSIVE = "inconclusive / needs review"
 
 
 class FinalPrediction(Base):
