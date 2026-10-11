@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
-import { CheckCircle, AlertCircle, X, ShieldAlert } from "lucide-react";
+import { ShieldAlert, CheckCircle2, AlertCircle, X, Cpu, Layers } from "lucide-react";
 import {
   certificateApi,
   CertificateResponse,
@@ -26,6 +26,7 @@ export default function UploadPage() {
   // ── Core State ──────────────────────────────────────────────────────────
   const [pending, setPending] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [certificates, setCertificates] = useState<CertificateResponse[]>([]);
   const [userName, setUserName] = useState<string>("");
@@ -114,18 +115,21 @@ export default function UploadPage() {
     setError(null);
   };
 
-  const updatePendingDocType = (index: number, type: string) => {
-    setPendingDocTypes((prev) => prev.map((t, i) => (i === index ? type : t)));
-  };
-
   // ── Upload Execution ─────────────────────────────────────────────────────
   const handleUpload = async () => {
     if (pending.length === 0) return;
     setUploading(true);
+    setUploadProgress(15);
     setError(null);
     try {
+      const timer = setInterval(() => {
+        setUploadProgress((p) => (p < 85 ? p + 15 : p));
+      }, 200);
+
       const { data } = await certificateApi.upload(pending);
-      // Store the doc-type selection for each newly uploaded cert
+      clearInterval(timer);
+      setUploadProgress(100);
+
       data.certificates.forEach((cert, idx) => {
         const dt = pendingDocTypes[idx] || "";
         if (dt) {
@@ -137,7 +141,7 @@ export default function UploadPage() {
       await refreshList();
       setToast({
         type: "success",
-        message: `Successfully ingested ${data.certificates.length} credential(s) into forensic ledger. Redirecting to verification cockpit...`,
+        message: `Successfully ingested ${data.certificates.length} document(s). Opening verification cockpit...`,
       });
 
       if (data.certificates.length > 0) {
@@ -150,6 +154,7 @@ export default function UploadPage() {
         }, 800);
       }
     } catch (err: unknown) {
+      setUploadProgress(0);
       let message =
         "Upload failed. Please check file types (PDF/JPG/PNG) and size (max 15 MB) and try again.";
       if (err && typeof err === "object" && "response" in err) {
@@ -200,7 +205,7 @@ export default function UploadPage() {
   // ── Delete Execution ─────────────────────────────────────────────────────
   const handleDelete = async (id: string, filename: string) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${filename}"?\n\nThis will permanently remove the certificate and all associated data (OCR, verification, report).`
+      `Are you sure you want to delete "${filename}"?\n\nThis will permanently remove the certificate and all associated forensic data.`
     );
     if (!confirmed) return;
 
@@ -219,48 +224,39 @@ export default function UploadPage() {
         type: "success",
         message: `"${filename}" was deleted successfully.`,
       });
-    } catch (err: unknown) {
-      let message = "Failed to delete the certificate. Please try again.";
-      if (err && typeof err === "object" && "response" in err) {
-        const s = (err as { response?: { status?: number } }).response?.status;
-        if (s === 404) message = "Certificate not found. It may have already been deleted.";
-        else if (s === 401 || s === 403)
-          message = "You are not authorized to delete this certificate.";
-        else if (s && s >= 500) message = "Server error. Please try again later.";
-      }
-      setToast({ type: "error", message });
+    } catch {
+      setToast({ type: "error", message: "Failed to delete the certificate." });
     } finally {
       setDeletingId(null);
       setTimeout(() => setToast(null), 4000);
     }
   };
 
-  // The latest certificate in the list (if any) feeds the real cryptographic anchor
   const latestCertificate = certificates.length > 0 ? certificates[0] : null;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1280px] mx-auto space-y-6">
+    <div className="max-w-[1280px] mx-auto space-y-6">
       {/* Toast Notification */}
       {toast && (
         <div
           id="upload-toast"
-          className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-[6px] shadow-2xl border text-xs font-mono font-medium transition-all ${
+          className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold transition-all ${
             toast.type === "success"
-              ? "bg-[#0b1c30] border-[#4edea3]/40 text-[#4edea3]"
-              : "bg-[#0b1c30] border-[#ffb4ab]/40 text-[#ffb4ab]"
+              ? "bg-white border-emerald-200 text-emerald-800"
+              : "bg-white border-red-200 text-red-800"
           }`}
         >
           {toast.type === "success" ? (
-            <CheckCircle size={15} />
+            <CheckCircle2 size={16} className="text-emerald-600" />
           ) : (
-            <AlertCircle size={15} />
+            <AlertCircle size={16} className="text-red-600" />
           )}
           <span>{toast.message}</span>
           <button
             onClick={() => setToast(null)}
-            className="ml-2 text-[#8d90a0] hover:text-[#d3e4fe]"
+            className="ml-2 text-slate-400 hover:text-slate-700"
           >
-            <X size={13} />
+            <X size={14} />
           </button>
         </div>
       )}
@@ -270,6 +266,30 @@ export default function UploadPage() {
         userName={userName}
         totalIngested={certificates.length}
       />
+
+      {/* Upload Progress Indicator when active */}
+      {uploading && (
+        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+            <span>Ingesting document into pipeline...</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <div className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* 2. Ingestion Workspace: 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -288,41 +308,52 @@ export default function UploadPage() {
             pending={pending}
             pendingDocTypes={pendingDocTypes}
             uploading={uploading}
-            error={error}
             onRemove={removePending}
             onClearAll={clearPending}
-            onUpdateDocType={updatePendingDocType}
             onUpload={handleUpload}
           />
         </div>
 
-        {/* Right Column: Blockchain Registry Telemetry (5 cols) */}
+        {/* Right Column: Pipeline Stepper & Ledger Card (5 cols) */}
         <div className="lg:col-span-5 space-y-5">
           <BlockchainRegistryCard latestCertificate={latestCertificate} />
 
-          {/* Quick Operational Info */}
-          <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <ShieldAlert size={15} className="text-[#ffb95f]" />
-              <h3 className="text-xs font-semibold text-[#d3e4fe] uppercase tracking-wider font-mono">
-                Ingestion Guidelines
-              </h3>
+          {/* Step-by-Step Pipeline Stepper */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Layers size={15} />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
+                  Verification Pipeline Stages
+                </h3>
+              </div>
+              <span className="text-[11px] font-semibold text-indigo-600">
+                14 Checks
+              </span>
             </div>
-            <ul className="text-xs text-[#8d90a0] space-y-2 font-sans list-disc list-inside">
-              <li>
-                <strong className="text-[#c3c6d7]">Supported Credentials:</strong> Degrees,
-                transcripts, marksheets, diplomas, Aadhaar cards, and resumes.
-              </li>
-              <li>
-                <strong className="text-[#c3c6d7]">Multi-File Batches:</strong> Multiple
-                documents dropped together are linked into an audit set for cross-document
-                comparison.
-              </li>
-              <li>
-                <strong className="text-[#c3c6d7]">Integrity Hash:</strong> Every document
-                generates a SHA-256 fingerprint used for duplicate checks and on-chain verification.
-              </li>
-            </ul>
+
+            <ol className="space-y-3 text-xs">
+              {[
+                { stage: "01", name: "SHA-256 Digesting", desc: "Cryptographic hash generation" },
+                { stage: "02", name: "Document Classification", desc: "Neural layout classification" },
+                { stage: "03", name: "Dual-Engine OCR Fusion", desc: "EasyOCR & Tesseract extraction" },
+                { stage: "04", name: "Tamper Forensic ELA", desc: "Error level & metadata inspection" },
+                { stage: "05", name: "Duplicate Detection", desc: "Cross-organization register match" },
+                { stage: "06", name: "AI Trust Score Computation", desc: "Weighted integrity verdict" },
+              ].map((step) => (
+                <li key={step.stage} className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                    {step.stage}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-slate-800 leading-snug">{step.name}</p>
+                    <p className="text-[11px] text-slate-400">{step.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </div>

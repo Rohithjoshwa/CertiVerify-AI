@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ShieldCheck, Copy, Check, Hash, Cpu, ExternalLink } from "lucide-react";
+import { Copy, Check, Hash, Cpu } from "lucide-react";
 import { CertificateResponse } from "@/lib/api";
 
 interface BlockchainRegistryCardProps {
@@ -21,94 +21,80 @@ export const BlockchainRegistryCard: React.FC<BlockchainRegistryCardProps> = ({
   };
 
   return (
-    <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-4">
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
       {/* Card Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#1b2b3f]">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-[4px] bg-[#2563eb]/15 border border-[#2563eb]/30 flex items-center justify-center text-[#38bdf8]">
-            <Cpu size={14} />
+          <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <Cpu size={15} />
           </div>
-          <h2 className="text-xs font-semibold text-[#d3e4fe] uppercase tracking-wider font-mono">
-            Blockchain & Ingestion Ledger Registry
+          <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+            Cryptographic Fingerprint & Ledger
           </h2>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-[#4edea3]/10 border border-[#4edea3]/30 text-[#4edea3]">
-          LEDGER ACTIVE
+        <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700">
+          ACTIVE
         </span>
       </div>
 
       {/* Network & Ledger Specs */}
       <div className="grid grid-cols-2 gap-3 text-xs">
-        <div className="bg-[#102034] border border-[#1b2b3f] rounded-[4px] p-2.5">
-          <p className="text-[10px] font-mono uppercase text-[#8d90a0]">Registry Protocol</p>
-          <p className="text-xs font-semibold text-[#d3e4fe] font-mono mt-0.5">
+        <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Protocol</p>
+          <p className="text-xs font-semibold text-slate-800 mt-0.5">
             EVM Smart Contract
           </p>
         </div>
-        <div className="bg-[#102034] border border-[#1b2b3f] rounded-[4px] p-2.5">
-          <p className="text-[10px] font-mono uppercase text-[#8d90a0]">Digest Algorithm</p>
-          <p className="text-xs font-semibold text-[#4edea3] font-mono mt-0.5">
-            FIPS 180-4 SHA-256
+        <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Digest Algorithm</p>
+          <p className="text-xs font-semibold text-emerald-700 font-mono mt-0.5">
+            SHA-256 (256-bit)
           </p>
         </div>
       </div>
 
       {/* Latest Ingested Document Anchor */}
       {latestCertificate ? (
-        <div className="bg-[#102034] border border-[#1b2b3f] rounded-[6px] p-3 space-y-2">
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase text-[#8d90a0] flex items-center gap-1">
-              <Hash size={11} className="text-[#38bdf8]" />
-              Latest Ingest Hash
+            <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+              <Hash size={13} className="text-indigo-600" />
+              Latest Hash Digest
             </span>
-            <span className="text-[10px] font-mono text-[#8d90a0] truncate max-w-[150px]">
-              {latestCertificate.original_filename}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-2 p-2 bg-[#000f21] border border-[#1b2b3f] rounded-[4px]">
-            <code className="text-[11px] font-mono text-[#38bdf8] break-all select-all">
-              {latestCertificate.sha256_hash}
-            </code>
             <button
               onClick={handleCopyHash}
-              className="p-1.5 rounded-[3px] bg-[#102034] hover:bg-[#1b2b3f] text-[#8d90a0] hover:text-[#d3e4fe] transition shrink-0"
-              title="Copy full SHA-256 hash"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
             >
-              {copied ? <Check size={13} className="text-[#4edea3]" /> : <Copy size={13} />}
+              {copied ? (
+                <>
+                  <Check size={12} className="text-emerald-600" />
+                  <span className="text-emerald-600">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={12} />
+                  <span>Copy</span>
+                </>
+              )}
             </button>
           </div>
-
-          <div className="flex items-center justify-between text-[10px] font-mono text-[#8d90a0] pt-1">
-            <span>
-              Cert ID:{" "}
-              <span className="text-[#d3e4fe]">{latestCertificate.id.slice(0, 8)}...</span>
-            </span>
-            <span className="text-[#ffb95f] flex items-center gap-1">
-              <ShieldCheck size={11} /> Verification Ready in Cockpit
-            </span>
+          <p className="text-[11px] font-mono text-slate-600 break-all bg-white p-2 rounded-lg border border-slate-200">
+            {latestCertificate.sha256_hash}
+          </p>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+            <span className="truncate max-w-[200px]">{latestCertificate.original_filename}</span>
+            <span>{new Date(latestCertificate.uploaded_at).toLocaleDateString()}</span>
           </div>
         </div>
       ) : (
-        <div className="bg-[#102034]/50 border border-dashed border-[#1b2b3f] rounded-[6px] p-4 text-center">
-          <p className="text-xs text-[#8d90a0] font-sans">
-            No document ingested in current session.
-          </p>
-          <p className="text-[10px] font-mono text-[#8d90a0]/70 mt-1">
-            Drop or select a file to compute cryptographic digest and anchor to ledger.
+        <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center">
+          <p className="text-xs text-slate-400">
+            Upload a certificate to anchor its cryptographic SHA-256 fingerprint.
           </p>
         </div>
       )}
-
-      {/* Honest Blockchain Status Disclosure */}
-      <div className="text-[11px] text-[#8d90a0] font-sans bg-[#000f21]/40 border border-[#1b2b3f] rounded-[4px] p-2.5 flex items-start gap-2">
-        <ShieldCheck size={14} className="text-[#38bdf8] shrink-0 mt-0.5" />
-        <div>
-          <span className="text-[#d3e4fe] font-medium font-sans">Anchoring Security Note:</span>{" "}
-          Files are hashed locally at ingestion. Full on-chain transaction anchoring and multi-layer
-          verification take place when running verification inside the Inspection Cockpit.
-        </div>
-      </div>
     </div>
   );
 };
+
+export default BlockchainRegistryCard;
