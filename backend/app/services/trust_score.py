@@ -130,21 +130,22 @@ def compute_trust_score(inputs: TrustScoreInputs) -> TrustScoreResult:
     # ── 5. QR verification ───────────────────────────────────────────────────
     if inputs.qr_present is not None:
         if not inputs.qr_present:
-            qr_trust = 70.0
-            qr_label = "No QR code found"
-            qr_status = "WARN"
+            evidence["qr"] = {"score": None, "status": "no_qr_found", "label": "No QR code found"}
+            # Absent QR code is not proof of fraud — excluded so it does not count as a failure
         elif inputs.qr_valid:
             qr_trust = 100.0
             qr_label = "VERIFIED"
             qr_status = "PASS"
+            trust_values["qr"] = qr_trust
+            evidence["qr"] = {"score": qr_trust, "status": qr_status, "label": qr_label}
         else:
             qr_trust = 0.0
             qr_label = "INVALID"
             qr_status = "FAIL"
-        trust_values["qr"] = qr_trust
-        evidence["qr"] = {"score": qr_trust, "status": qr_status, "label": qr_label}
+            trust_values["qr"] = qr_trust
+            evidence["qr"] = {"score": qr_trust, "status": qr_status, "label": qr_label}
     else:
-        evidence["qr"] = {"score": None, "status": "UNAVAILABLE", "label": "Not checked"}
+        evidence["qr"] = {"score": None, "status": "no_qr_found", "label": "Not checked"}
 
     # ── 6. Blockchain verification ───────────────────────────────────────────
     if inputs.blockchain_status is not None and inputs.blockchain_status != "unavailable":

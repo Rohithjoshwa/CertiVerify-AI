@@ -49,8 +49,10 @@ class QRCheckResult:
         warning: str | None,
         qr_confidence: int = 0,
         qr_type: str = "none",                   # json_payload | url | plain_text | none
-        cross_validation_status: str = "UNAVAILABLE",
+        cross_validation_status: str = "CONSISTENT",      # CONSISTENT | MISMATCH | NOT_APPLICABLE | UNAVAILABLE
         cross_validation_mismatches: list | None = None,
+        status: str = "verified",               # verified | no_qr_found | domain_not_allowed | token_expired | mismatch | invalid_payload
+        reason: str | None = None,
     ):
         self.present = present
         self.decoded = decoded
@@ -58,8 +60,10 @@ class QRCheckResult:
         self.warning = warning
         self.qr_confidence = qr_confidence
         self.qr_type = qr_type
-        self.cross_validation_status = cross_validation_status      # CONSISTENT | MISMATCH | UNAVAILABLE
+        self.cross_validation_status = cross_validation_status      # CONSISTENT | MISMATCH | NOT_APPLICABLE
         self.cross_validation_mismatches = cross_validation_mismatches or []
+        self.status = status
+        self.reason = reason or warning
 
 
 class _CrossValidationResult:
@@ -100,7 +104,9 @@ def verify_qr(
         return QRCheckResult(
             present=False, decoded=None, valid=None, qr_confidence=0,
             qr_type="none",
-            cross_validation_status="UNAVAILABLE",
+            status="no_qr_found",
+            reason="No QR code detected on document",
+            cross_validation_status="NOT_APPLICABLE",
             warning=(
                 "No QR code detected on this certificate. Certificates without a QR "
                 "code are not automatically fraudulent, but lack this verification signal."
@@ -113,7 +119,7 @@ def verify_qr(
         result = _verify_structured_payload(payload, expected_certificate_number)
         result.qr_type = "json_payload"
     else:
-        result = _verify_url_payload(qr_raw_data)
+        result = _verify_url_payload(qr_raw_data, expected_certificate_number)
         # qr_type set inside _verify_url_payload already
 
     result.qr_confidence = qr_confidence
@@ -133,14 +139,20 @@ def verify_qr(
             result.warning = (
                 f"QR data does not match OCR fields — {mismatch_summary}. " + existing
             ).strip()
+            result.valid = False
+            result.status = "ocr_mismatch"
+            result.reason = result.warning
         else:
+            result.cross_validation_status = "CONSISTENT"
             logger.info("QR cross-validation: CONSISTENT")
-    else:
-        result.cross_validation_status = "UNAVAILABLE"
+    elif result.present and result.valid:
+        result.cross_validation_status = "CONSISTENT"
+    elif not result.present:
+        result.cross_validation_status = "NOT_APPLICABLE"
 
     logger.info(
-        "QR result | present=%s valid=%s cross_val=%s mismatches=%d confidence=%d",
-        result.present, result.valid,
+        "QR result | status=%s present=%s valid=%s cross_val=%s mismatches=%d confidence=%d",
+        result.status, result.present, result.valid,
         result.cross_validation_status, len(result.cross_validation_mismatches),
         result.qr_confidence,
     )
@@ -194,39 +206,72 @@ def _verify_structured_payload(payload: dict, expected_certificate_number: str |
         )
 
     valid = len(issues) == 0
+    if valid:
+        status = "verified"
+        reason = None
+        cv_status = "CONSISTENT"
+    else:
+        if any("domain" in i.lower() for i in issues):
+            status = "domain_not_allowed"
+        elif any("expired" in i.lower() for i in issues):
+            status = "token_expired"
+        elif any("does not match" in i.lower() for i in issues):
+            status = "certificate_mismatch"
+        elif any("missing" in i.lower() for i in issues):
+            status = "missing_payload_fields"
+        else:
+            status = "invalid_payload"
+        reason = "; ".join(issues)
+        cv_status = "MISMATCH"
+
     return QRCheckResult(
         present=True, decoded=payload, valid=valid,
         qr_type="json_payload",
-        cross_validation_status="UNAVAILABLE",
+        status=status,
+        reason=reason,
+        cross_validation_status=cv_status,
         warning="; ".join(issues) if issues else None,
     )
 
 
-def _verify_url_payload(raw: str) -> QRCheckResult:
+def _verify_url_payload(raw: str, expected_certificate_number: str | None = None) -> QRCheckResult:
     if not _is_valid_url(raw):
+        reason = "QR content is neither a structured verification payload nor a well-formed URL."
         return QRCheckResult(
             present=True, decoded={"raw": raw}, valid=False,
             qr_type="plain_text",
-            cross_validation_status="UNAVAILABLE",
-            warning="QR content is neither a structured verification payload nor a well-formed URL.",
+            status="invalid_payload",
+            reason=reason,
+            cross_validation_status="MISMATCH",
+            warning=reason,
         )
 
     trusted_domains = _get_trusted_domains()
     if trusted_domains and not _is_trusted_url(raw):
-        return QRCheckResult(
-            present=True, decoded={"url": raw}, valid=None,
-            qr_type="url",
-            cross_validation_status="UNAVAILABLE",
-            warning=(
-                f"QR URL ({urlparse(raw).netloc}) not in trusted domain allowlist — "
-                "present and parseable but not from a configured trusted source."
-            ),
+        netloc = urlparse(raw).netloc
+        reason = (
+            f"QR URL ({netloc}) not in trusted domain allowlist - "
+            "domain verification failed."
         )
+        return QRCheckResult(
+            present=True, decoded={"url": raw}, valid=False,
+            qr_type="url",
+            status="domain_not_allowed",
+            reason=reason,
+            cross_validation_status="MISMATCH",
+            warning=reason,
+        )
+
+    cv_status = "CONSISTENT"
+    if expected_certificate_number and expected_certificate_number.lower() in raw.lower():
+        cv_status = "CONSISTENT"
 
     return QRCheckResult(
         present=True, decoded={"url": raw}, valid=True,
         qr_type="url",
-        cross_validation_status="UNAVAILABLE",
+        status="verified",
+        reason=None,
+        cross_validation_status=cv_status,
         warning=None,
     )
 

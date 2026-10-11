@@ -12,6 +12,9 @@ class VerificationResultResponse(BaseModel):
     qr_decoded_data: Optional[dict] = None
     qr_valid: Optional[bool] = None
     qr_warning: Optional[str] = None
+    qr_status: Optional[str] = None
+    status: Optional[str] = None
+    reason: Optional[str] = None
 
     # Blockchain Verification
     blockchain_hash_submitted: Optional[str] = None

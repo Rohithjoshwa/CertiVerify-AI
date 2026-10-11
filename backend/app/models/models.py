@@ -304,10 +304,33 @@ class VerificationResult(Base):
 
     # Hash Consistency (freshly computed hash vs stored hash at verify time)
     hash_match_status = Column(String(20), nullable=True)          # MATCH | MISMATCH | NOT_REGISTERED
-
     created_at = Column(DateTime, default=datetime.utcnow)
 
     certificate = relationship("Certificate", back_populates="verification")
+
+    @property
+    def qr_status(self) -> str:
+        if self.qr_valid is True:
+            return "verified"
+        if not self.qr_present:
+            return "no_qr_found"
+        if self.qr_warning and "domain" in self.qr_warning.lower():
+            return "domain_not_allowed"
+        if self.qr_warning and "expired" in self.qr_warning.lower():
+            return "token_expired"
+        if self.qr_warning and ("match" in self.qr_warning.lower() or "mismatch" in self.qr_warning.lower()):
+            return "ocr_mismatch"
+        if self.qr_valid is False:
+            return "invalid_payload"
+        return "unverified"
+
+    @property
+    def status(self) -> str:
+        return self.qr_status
+
+    @property
+    def reason(self) -> str | None:
+        return self.qr_warning
 
 
 

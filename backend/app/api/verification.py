@@ -113,12 +113,15 @@ async def run_qr_check(
     decoded_with_meta = dict(result.decoded) if result.decoded else {}
     decoded_with_meta["_qr_type"] = result.qr_type
     decoded_with_meta["_detection_source"] = detection_source
+    decoded_with_meta["_status"] = result.status
+    if result.reason:
+        decoded_with_meta["_reason"] = result.reason
 
     verification_row = await _get_or_create_verification_row(cert.id, db)
     verification_row.qr_present = result.present
     verification_row.qr_decoded_data = decoded_with_meta if result.present else result.decoded
     verification_row.qr_valid = result.valid
-    verification_row.qr_warning = result.warning
+    verification_row.qr_warning = result.reason or result.warning
     verification_row.cross_validation_status = result.cross_validation_status
     verification_row.cross_validation_mismatches = result.cross_validation_mismatches or []
 
@@ -458,15 +461,23 @@ async def get_enhanced_verification(
 
     if vr.qr_valid is True:
         qr_status = "VERIFIED"
-    elif vr.qr_present and vr.qr_valid is False:
+    elif not vr.qr_present:
+        qr_status = "no_qr_found"
+    elif vr.qr_warning and "domain" in vr.qr_warning.lower():
+        qr_status = "domain_not_allowed"
+    elif vr.qr_warning and "expired" in vr.qr_warning.lower():
+        qr_status = "token_expired"
+    elif vr.qr_warning and ("match" in vr.qr_warning.lower() or "mismatch" in vr.qr_warning.lower()):
+        qr_status = "ocr_mismatch"
+    elif vr.qr_valid is False:
         qr_status = "INVALID"
-    elif vr.qr_present and vr.qr_valid is None:
-        qr_status = "PRESENT_UNVERIFIED"
     else:
-        qr_status = "NOT_FOUND"
+        qr_status = "PRESENT_UNVERIFIED"
 
     qr_sub = {
         "status": qr_status,
+        "reason": vr.qr_warning,
+        "warning": vr.qr_warning,
         "qr_present": vr.qr_present,
         "qr_decoded": vr.qr_present and bool(decoded_data),
         "qr_type": qr_type,
@@ -476,7 +487,6 @@ async def get_enhanced_verification(
             decoded_data.get("certificate_id") or decoded_data.get("certificateId")
             if isinstance(decoded_data, dict) else None
         ),
-        "warning": vr.qr_warning,
     }
 
     # ── Hash verification sub-object ──────────────────────────────────────────
