@@ -11,9 +11,7 @@ import {
   FileText,
   Copy,
   Check,
-  ShieldAlert,
   ShieldCheck,
-  ShieldX,
   FileCode,
   HardDrive,
   Calendar,
@@ -26,6 +24,7 @@ import {
   FinalPredictionResponse,
   VerificationReportResponse,
 } from "@/lib/api";
+import { Badge, Button } from "@/components/ui";
 
 interface ForensicCockpitHeaderProps {
   cert: CertificateResponse | null;
@@ -92,34 +91,32 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="p-2 bg-[#0b1c30] hover:bg-[#102034] text-[#8d90a0] hover:text-[#d3e4fe] rounded-[4px] border border-[#1b2b3f] transition"
+            className="p-2 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-900 rounded-lg border border-slate-200 shadow-sm transition"
             title="Back to Dashboard"
           >
             <ArrowLeft size={16} />
           </Link>
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl font-bold text-[#d3e4fe] tracking-tight">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                 {cert?.original_filename || "Certificate Inspection"}
               </h1>
               {prediction && (
-                <span
-                  className={`text-xs px-2.5 py-0.5 rounded-full uppercase font-bold tracking-wide border ${
+                <Badge
+                  variant={
                     prediction.label === "genuine"
-                      ? "bg-[#4edea3]/10 text-[#4edea3] border-[#4edea3]/30"
+                      ? "genuine"
                       : prediction.label === "suspicious"
-                      ? "bg-[#ffb95f]/10 text-[#ffb95f] border-[#ffb95f]/30"
-                      : "bg-[#ffb4ab]/10 text-[#ffb4ab] border-[#ffb4ab]/30"
-                  }`}
+                      ? "suspicious"
+                      : "fake"
+                  }
+                  size="md"
                 >
-                  {prediction.label === "genuine" && "✓ "}
-                  {prediction.label === "suspicious" && "⚠ "}
-                  {prediction.label === "fake" && "✗ "}
-                  {prediction.label}
-                </span>
+                  {prediction.label.toUpperCase()}
+                </Badge>
               )}
             </div>
-            <p className="text-xs text-[#8d90a0] mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               AI Forensic Cockpit • Full Integrity & Cryptographic Verification Audit
             </p>
           </div>
@@ -127,97 +124,108 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
 
         {/* Global Action Cluster */}
         <div className="flex items-center gap-2 flex-wrap">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onRefresh}
             disabled={loadingPipeline}
-            className="px-3 py-2 text-xs font-medium bg-[#0b1c30] hover:bg-[#102034] text-[#c3c6d7] hover:text-[#d3e4fe] border border-[#1b2b3f] rounded-[4px] transition flex items-center gap-1.5 disabled:opacity-50"
-            title="Reload telemetry and records"
+            icon={
+              <RefreshCw
+                size={13}
+                className={loadingPipeline ? "animate-spin text-primary" : "text-slate-500"}
+              />
+            }
           >
-            <RefreshCw
-              size={13}
-              className={loadingPipeline ? "animate-spin text-[#38bdf8]" : "text-[#8d90a0]"}
-            />
-            <span>Refresh</span>
-          </button>
+            Refresh
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onRunOcr}
             disabled={runningOcr}
-            className="px-3 py-2 text-xs font-medium bg-[#102034] hover:bg-[#1b2b3f] text-[#c3c6d7] hover:text-[#d3e4fe] border border-[#1b2b3f] rounded-[4px] transition flex items-center gap-1.5 disabled:opacity-50"
-            title="Re-run optical character recognition"
+            icon={
+              runningOcr ? (
+                <Loader2 size={13} className="animate-spin text-primary" />
+              ) : (
+                <ScanLine size={13} className="text-primary" />
+              )
+            }
           >
-            {runningOcr ? (
-              <Loader2 size={13} className="animate-spin text-[#38bdf8]" />
-            ) : (
-              <ScanLine size={13} className="text-[#38bdf8]" />
-            )}
-            <span>Run OCR</span>
-          </button>
+            {runningOcr ? "Running OCR..." : "Run OCR"}
+          </Button>
 
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={onVerifyAll}
             disabled={verifyingAll}
-            className="px-3.5 py-2 text-xs font-semibold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[4px] shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
-            title="Execute QR, Blockchain, Tampering, Duplicate, Fraud, and Trust verification"
+            icon={
+              verifyingAll ? (
+                <Loader2 size={13} className="animate-spin text-white" />
+              ) : (
+                <Zap size={13} />
+              )
+            }
           >
-            {verifyingAll ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <Zap size={13} />
-            )}
-            <span>{verifyingAll ? "Verifying..." : "Verify All"}</span>
-          </button>
+            {verifyingAll ? "Verifying..." : "Verify All"}
+          </Button>
 
           {report ? (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onDownloadReport}
               disabled={downloadingReport}
-              className="px-3 py-2 text-xs font-medium bg-[#0b1c30] hover:bg-[#102034] text-[#4edea3] border border-[#4edea3]/30 rounded-[4px] transition flex items-center gap-1.5 disabled:opacity-50"
-              title="Download authenticated audit PDF"
+              className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+              icon={
+                downloadingReport ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Download size={13} />
+                )
+              }
             >
-              {downloadingReport ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <Download size={13} />
-              )}
-              <span>Download PDF</span>
-            </button>
+              Download PDF
+            </Button>
           ) : (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onGenerateReport}
               disabled={generatingReport}
-              className="px-3 py-2 text-xs font-medium bg-[#0b1c30] hover:bg-[#102034] text-[#c3c6d7] hover:text-[#d3e4fe] border border-[#1b2b3f] rounded-[4px] transition flex items-center gap-1.5 disabled:opacity-50"
-              title="Generate comprehensive forensic report"
+              icon={
+                generatingReport ? (
+                  <Loader2 size={13} className="animate-spin text-primary" />
+                ) : (
+                  <FileText size={13} className="text-slate-500" />
+                )
+              }
             >
-              {generatingReport ? (
-                <Loader2 size={13} className="animate-spin text-[#38bdf8]" />
-              ) : (
-                <FileText size={13} className="text-[#8d90a0]" />
-              )}
-              <span>Generate Report</span>
-            </button>
+              {generatingReport ? "Generating..." : "Generate Report"}
+            </Button>
           )}
         </div>
       </div>
 
       {/* Metadata Pill Banner */}
-      <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-3 text-xs text-[#c3c6d7] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-center">
+      <div className="bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-600 shadow-sm grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-center">
         {/* Certificate ID */}
         <div className="flex items-center gap-2 min-w-0">
-          <FileCode size={14} className="text-[#8d90a0] shrink-0" />
+          <FileCode size={14} className="text-slate-400 shrink-0" />
           <div className="min-w-0">
-            <p className="text-[10px] text-[#8d90a0] uppercase font-mono">Certificate ID</p>
+            <p className="text-[10px] text-slate-400 uppercase font-mono">Certificate ID</p>
             <div className="flex items-center gap-1">
-              <span className="font-mono text-[#d3e4fe] truncate">
+              <span className="font-mono text-slate-800 truncate">
                 {cert?.id ? `${cert.id.slice(0, 8)}…` : "—"}
               </span>
               {cert?.id && (
                 <button
                   onClick={() => copyToClipboard(cert.id, "id")}
-                  className="text-[#8d90a0] hover:text-[#d3e4fe] transition"
+                  className="text-slate-400 hover:text-slate-700 transition"
                   title="Copy ID"
                 >
-                  {copiedId ? <Check size={11} className="text-[#4edea3]" /> : <Copy size={11} />}
+                  {copiedId ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
                 </button>
               )}
             </div>
@@ -226,10 +234,10 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
 
         {/* File Format & Size */}
         <div className="flex items-center gap-2">
-          <HardDrive size={14} className="text-[#8d90a0] shrink-0" />
+          <HardDrive size={14} className="text-slate-400 shrink-0" />
           <div>
-            <p className="text-[10px] text-[#8d90a0] uppercase font-mono">Format & Size</p>
-            <p className="text-[#d3e4fe] font-mono">
+            <p className="text-[10px] text-slate-400 uppercase font-mono">Format & Size</p>
+            <p className="text-slate-800 font-mono">
               {(cert?.file_type || "PDF").toUpperCase()} • {formatFileSize(cert?.file_size_bytes)}
             </p>
           </div>
@@ -237,10 +245,10 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
 
         {/* Upload Date */}
         <div className="flex items-center gap-2">
-          <Calendar size={14} className="text-[#8d90a0] shrink-0" />
+          <Calendar size={14} className="text-slate-400 shrink-0" />
           <div>
-            <p className="text-[10px] text-[#8d90a0] uppercase font-mono">Uploaded At</p>
-            <p className="text-[#d3e4fe]">
+            <p className="text-[10px] text-slate-400 uppercase font-mono">Uploaded At</p>
+            <p className="text-slate-800">
               {cert?.uploaded_at
                 ? new Date(cert.uploaded_at).toLocaleString("en-IN", {
                     day: "2-digit",
@@ -256,21 +264,21 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
 
         {/* SHA-256 Hash */}
         <div className="flex items-center gap-2 col-span-2 lg:col-span-2 min-w-0">
-          <ShieldCheck size={14} className="text-[#4edea3] shrink-0" />
+          <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-[#8d90a0] uppercase font-mono">SHA-256 Checksum</p>
+            <p className="text-[10px] text-slate-400 uppercase font-mono">SHA-256 Checksum</p>
             <div className="flex items-center gap-1.5">
-              <span className="font-mono text-[11px] text-[#d3e4fe] truncate">
+              <span className="font-mono text-[11px] text-slate-700 truncate">
                 {cert?.sha256_hash || "Computing on-chain signature..."}
               </span>
               {cert?.sha256_hash && (
                 <button
                   onClick={() => copyToClipboard(cert.sha256_hash, "hash")}
-                  className="text-[#8d90a0] hover:text-[#d3e4fe] transition shrink-0"
+                  className="text-slate-400 hover:text-slate-700 transition shrink-0"
                   title="Copy SHA-256 hash"
                 >
                   {copiedHash ? (
-                    <Check size={11} className="text-[#4edea3]" />
+                    <Check size={11} className="text-emerald-600" />
                   ) : (
                     <Copy size={11} />
                   )}
@@ -282,26 +290,26 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
       </div>
 
       {/* Primary Cockpit Navigation Tabs */}
-      <div className="flex items-center justify-between border-b border-[#1b2b3f] pb-3">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div className="flex items-center gap-2">
           <button
             onClick={() => onTabChange("cockpit")}
-            className={`px-4 py-2 rounded-[4px] text-xs font-semibold tracking-wider uppercase transition flex items-center gap-2 font-mono ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide uppercase transition flex items-center gap-2 ${
               activeTab === "cockpit"
-                ? "bg-[#2563eb]/20 text-[#38bdf8] border border-[#2563eb]/40"
-                : "text-[#8d90a0] hover:text-[#d3e4fe] hover:bg-[#0b1c30]"
+                ? "bg-primary/10 text-primary border border-primary/25 shadow-xs"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <Layers size={14} />
             <span>AI Forensic Cockpit</span>
             {prediction && (
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
                   prediction.label === "genuine"
-                    ? "bg-[#4edea3]/20 text-[#4edea3]"
+                    ? "bg-emerald-100 text-emerald-800"
                     : prediction.label === "suspicious"
-                    ? "bg-[#ffb95f]/20 text-[#ffb95f]"
-                    : "bg-[#ffb4ab]/20 text-[#ffb4ab]"
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-rose-100 text-rose-800"
                 }`}
               >
                 {prediction.label}
@@ -311,16 +319,16 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
 
           <button
             onClick={() => onTabChange("pipeline")}
-            className={`px-4 py-2 rounded-[4px] text-xs font-semibold tracking-wider uppercase transition flex items-center gap-2 font-mono ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide uppercase transition flex items-center gap-2 ${
               activeTab === "pipeline"
-                ? "bg-[#2563eb]/20 text-[#38bdf8] border border-[#2563eb]/40"
-                : "text-[#8d90a0] hover:text-[#d3e4fe] hover:bg-[#0b1c30]"
+                ? "bg-primary/10 text-primary border border-primary/25 shadow-xs"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <ScanLine size={14} />
             <span>OCR & Verification Pipeline</span>
             {pipeline && (
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-[#000f21] border border-[#1b2b3f] text-[#c3c6d7]">
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold">
                 {pipeline.completion_pct}%
               </span>
             )}

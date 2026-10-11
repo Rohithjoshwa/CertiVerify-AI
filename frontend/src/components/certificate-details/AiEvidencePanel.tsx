@@ -9,8 +9,6 @@ import {
   HelpCircle,
   Activity,
   Gauge,
-  Layers,
-  Sparkles,
 } from "lucide-react";
 import {
   FinalPredictionResponse,
@@ -49,55 +47,55 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
     const s = (status || "").toUpperCase();
     if (["PASS", "VERIFIED", "MATCH", "NOT_FOUND", "LOW_RISK", "CLEAN"].includes(s)) {
       return {
-        color: "text-[#4edea3]",
-        bg: "bg-[#4edea3]/10 border-[#4edea3]/20",
+        color: "text-emerald-700",
+        bg: "bg-emerald-50 border-emerald-200",
         icon: CheckCircle2,
       };
     }
     if (["WARN", "NOT_REGISTERED", "MEDIUM_RISK", "FLAGGED"].includes(s)) {
       return {
-        color: "text-[#ffb95f]",
-        bg: "bg-[#ffb95f]/10 border-[#ffb95f]/20",
+        color: "text-amber-700",
+        bg: "bg-amber-50 border-amber-200",
         icon: AlertTriangle,
       };
     }
     if (["FAIL", "INVALID", "MISMATCH", "HIGH_RISK", "DUPLICATE"].includes(s)) {
       return {
-        color: "text-[#ffb4ab]",
-        bg: "bg-[#ffb4ab]/10 border-[#ffb4ab]/20",
+        color: "text-red-700",
+        bg: "bg-red-50 border-red-200",
         icon: XCircle,
       };
     }
     return {
-      color: "text-[#8d90a0]",
-      bg: "bg-[#102034] border-[#1b2b3f]",
+      color: "text-slate-600",
+      bg: "bg-slate-50 border-slate-200",
       icon: HelpCircle,
     };
   };
 
   return (
-    <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-5">
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
       {/* Panel Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#1b2b3f]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
         <div>
-          <h3 className="text-xs font-semibold text-[#d3e4fe] uppercase tracking-wider font-mono flex items-center gap-2">
-            <ListChecks size={15} className="text-[#38bdf8]" />
+          <h3 className="text-sm font-semibold text-slate-900 tracking-tight flex items-center gap-2">
+            <ListChecks size={16} className="text-indigo-600" />
             AI Evidence Matrix & Synthesis
           </h3>
-          <p className="text-[11px] text-[#8d90a0] mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Holistic cross-evaluation of forensic telemetry, Bayesian risk weights, and decision rules.
           </p>
         </div>
         {fraud?.fraud_probability != null && (
           <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-[#8d90a0]">Statistical Risk:</span>
+            <span className="text-slate-500">Statistical Risk:</span>
             <span
-              className={`font-mono font-bold ${
+              className={`font-semibold ${
                 fraud.fraud_probability < 0.3
-                  ? "text-[#4edea3]"
+                  ? "text-emerald-700"
                   : fraud.fraud_probability < 0.6
-                  ? "text-[#ffb95f]"
-                  : "text-[#ffb4ab]"
+                  ? "text-amber-700"
+                  : "text-red-700"
               }`}
             >
               {Math.round(fraud.fraud_probability * 100)}%
@@ -118,15 +116,15 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
           return (
             <div
               key={key}
-              className={`flex items-center justify-between rounded-[6px] px-3 py-2 border transition ${cfg.bg}`}
+              className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 border transition ${cfg.bg}`}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Icon size={13} className={`${cfg.color} shrink-0`} />
-                <span className="text-xs text-[#c3c6d7] truncate">{label}</span>
+                <Icon size={14} className={`${cfg.color} shrink-0`} />
+                <span className="text-xs font-medium text-slate-800 truncate">{label}</span>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                {score && <span className="text-[11px] font-mono text-[#8d90a0]">{score}</span>}
-                <span className={`text-[10px] font-mono font-semibold uppercase ${cfg.color}`}>
+                {score && <span className="text-[11px] font-mono text-slate-500">{score}</span>}
+                <span className={`text-[10px] font-semibold uppercase ${cfg.color}`}>
                   {status.replace(/_/g, " ")}
                 </span>
               </div>
@@ -136,28 +134,28 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
       </div>
 
       {/* Trust Score Factor Contributions & Fraud Weights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#1b2b3f]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
         {/* Factor Trust Contributions */}
-        <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-2.5">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono uppercase text-[#d3e4fe] flex items-center gap-1.5">
-              <Activity size={12} className="text-[#38bdf8]" /> Trust Factor Breakdown
+            <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+              <Activity size={14} className="text-indigo-600" /> Trust Factor Breakdown
             </span>
-            <span className="text-[10px] text-[#8d90a0] font-mono">0–100 Scale</span>
+            <span className="text-[10px] text-slate-400">0–100 Scale</span>
           </div>
           {trustScore?.breakdown?.factor_trust_values &&
           Object.keys(trustScore.breakdown.factor_trust_values).length > 0 ? (
             <div className="space-y-2">
               {Object.entries(trustScore.breakdown.factor_trust_values).map(([factor, val]) => (
                 <div key={factor} className="space-y-1">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-[#c3c6d7] capitalize">{factor.replace(/_/g, " ")}</span>
-                    <span className="font-mono text-[#d3e4fe]">{Math.round(val)}</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-600 capitalize">{factor.replace(/_/g, " ")}</span>
+                    <span className="font-semibold text-slate-900">{Math.round(val)}</span>
                   </div>
-                  <div className="h-1 bg-[#102034] rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${
-                        val >= 80 ? "bg-[#4edea3]" : val >= 50 ? "bg-[#ffb95f]" : "bg-[#ffb4ab]"
+                        val >= 80 ? "bg-emerald-500" : val >= 50 ? "bg-amber-500" : "bg-red-500"
                       }`}
                       style={{ width: `${val}%` }}
                     />
@@ -166,22 +164,22 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-[#8d90a0] italic">
+            <p className="text-xs text-slate-400 italic">
               Compute Trust Score above to generate itemized factor weights.
             </p>
           )}
         </div>
 
         {/* Bayesian Fraud Weights */}
-        <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-2.5">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono uppercase text-[#d3e4fe] flex items-center gap-1.5">
-              <Gauge size={12} className="text-[#ffb95f]" /> Fraud Weights Distribution
+            <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+              <Gauge size={14} className="text-amber-600" /> Fraud Weights Distribution
             </span>
-            <span className="text-[10px] text-[#8d90a0] font-mono">Active Weights</span>
+            <span className="text-[10px] text-slate-400">Active Weights</span>
           </div>
           {fraud ? (
-            <div className="space-y-2 text-[11px]">
+            <div className="space-y-2 text-xs">
               {[
                 ["OCR Accuracy", fraud.ocr_accuracy_weight],
                 ["QR Verification", fraud.qr_weight],
@@ -192,15 +190,15 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
                 ["Image Quality", fraud.image_quality_weight],
               ].map(([label, weight]) => (
                 <div key={label as string} className="flex items-center justify-between">
-                  <span className="text-[#8d90a0]">{label}</span>
+                  <span className="text-slate-600">{label}</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-16 bg-[#102034] h-1 rounded-full overflow-hidden">
+                    <div className="w-20 bg-slate-200 h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="bg-[#2563eb] h-full rounded-full"
+                        className="bg-indigo-600 h-full rounded-full"
                         style={{ width: `${(weight as number) * 100}%` }}
                       />
                     </div>
-                    <span className="font-mono text-[#c3c6d7] w-8 text-right">
+                    <span className="font-semibold text-slate-800 w-8 text-right">
                       {Math.round((weight as number) * 100)}%
                     </span>
                   </div>
@@ -208,7 +206,7 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-[#8d90a0] italic">
+            <p className="text-xs text-slate-400 italic">
               Execute Fraud Analysis to view factor contribution weights.
             </p>
           )}
@@ -217,25 +215,22 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
 
       {/* Decision Audit Log / Reasons List */}
       {reasons.length > 0 && (
-        <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-2">
-          <span className="text-xs font-mono uppercase text-[#d3e4fe] block">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+          <span className="text-xs font-semibold text-slate-800 block">
             System Decision Log
           </span>
           <ul className="space-y-1.5 text-xs">
             {reasons.map((r, i) => {
               const isPass = r.startsWith("✓");
               const isFail = r.startsWith("✗");
-              const isWarn = r.startsWith("⚠");
               const color = isPass
-                ? "text-[#4edea3]"
+                ? "text-emerald-700"
                 : isFail
-                ? "text-[#ffb4ab]"
-                : isWarn
-                ? "text-[#ffb95f]"
-                : "text-[#c3c6d7]";
+                ? "text-red-700"
+                : "text-amber-700";
               return (
                 <li key={i} className={`flex items-start gap-2 ${color} leading-relaxed`}>
-                  <span className="font-mono shrink-0">{isPass ? "✓" : isFail ? "✗" : "•"}</span>
+                  <span className="font-bold shrink-0">{isPass ? "✓" : isFail ? "✗" : "•"}</span>
                   <span>{r.replace(/^[✓✗⚠]\s*/, "")}</span>
                 </li>
               );
@@ -246,3 +241,5 @@ export const AiEvidencePanel: React.FC<AiEvidencePanelProps> = ({
     </div>
   );
 };
+
+export default AiEvidencePanel;

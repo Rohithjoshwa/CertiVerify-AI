@@ -1,23 +1,24 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   ShieldCheck,
   ShieldAlert,
   ShieldX,
   Sparkles,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  TrendingUp,
   Activity,
-  Zap,
+  ArrowRight,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import {
   FinalPredictionResponse,
   TrustScoreResponse,
   FraudAnalysisResponse,
 } from "@/lib/api";
+import { ScoreGauge } from "@/components/ui/ScoreGauge";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 
 interface FinalVerdictMegaCardProps {
   prediction: FinalPredictionResponse | null;
@@ -38,255 +39,154 @@ export const FinalVerdictMegaCard: React.FC<FinalVerdictMegaCardProps> = ({
   predicting,
   computingTrust,
 }) => {
-  const [animatedTrust, setAnimatedTrust] = useState(0);
+  const label = (prediction?.label || "pending").toLowerCase();
 
-  useEffect(() => {
-    if (trustScore?.score != null) {
-      const timer = setTimeout(() => setAnimatedTrust(trustScore.score), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [trustScore?.score]);
-
-  // Verdict Theme Palette
-  const label = prediction?.label || "pending";
-  const theme = {
+  const themeConfig = {
     genuine: {
-      border: "border-[#4edea3]/40",
-      glow: "shadow-[0_0_24px_rgba(78,222,163,0.12)]",
-      badgeBg: "bg-[#4edea3]/10 text-[#4edea3] border-[#4edea3]/30",
-      accentText: "text-[#4edea3]",
+      cardBg: "bg-emerald-50/40 border-emerald-200",
+      iconBg: "bg-emerald-100 text-emerald-700",
+      titleColor: "text-emerald-900",
+      badgeVariant: "genuine" as const,
       icon: ShieldCheck,
-      bannerBg: "bg-gradient-to-r from-[#4edea3]/15 via-[#4edea3]/5 to-transparent",
       title: "Genuine Credential Verified",
     },
     suspicious: {
-      border: "border-[#ffb95f]/40",
-      glow: "shadow-[0_0_24px_rgba(255,185,95,0.12)]",
-      badgeBg: "bg-[#ffb95f]/10 text-[#ffb95f] border-[#ffb95f]/30",
-      accentText: "text-[#ffb95f]",
+      cardBg: "bg-amber-50/40 border-amber-200",
+      iconBg: "bg-amber-100 text-amber-700",
+      titleColor: "text-amber-900",
+      badgeVariant: "suspicious" as const,
       icon: ShieldAlert,
-      bannerBg: "bg-gradient-to-r from-[#ffb95f]/15 via-[#ffb95f]/5 to-transparent",
       title: "Suspicious Indicators Detected",
     },
     fake: {
-      border: "border-[#ffb4ab]/40",
-      glow: "shadow-[0_0_24px_rgba(255,180,171,0.12)]",
-      badgeBg: "bg-[#ffb4ab]/10 text-[#ffb4ab] border-[#ffb4ab]/30",
-      accentText: "text-[#ffb4ab]",
+      cardBg: "bg-red-50/40 border-red-200",
+      iconBg: "bg-red-100 text-red-700",
+      titleColor: "text-red-900",
+      badgeVariant: "fake" as const,
       icon: ShieldX,
-      bannerBg: "bg-gradient-to-r from-[#ffb4ab]/15 via-[#ffb4ab]/5 to-transparent",
-      title: "High-Confidence Forensic Forgery / Fake",
+      title: "High-Confidence Forgery / Fake",
     },
     pending: {
-      border: "border-[#1b2b3f]",
-      glow: "",
-      badgeBg: "bg-[#102034] text-[#8d90a0] border-[#1b2b3f]",
-      accentText: "text-[#8d90a0]",
+      cardBg: "bg-slate-50 border-slate-200",
+      iconBg: "bg-slate-100 text-slate-700",
+      titleColor: "text-slate-900",
+      badgeVariant: "neutral" as const,
       icon: Activity,
-      bannerBg: "bg-[#102034]/50",
-      title: "Awaiting Forensic Prediction",
+      title: "Forensic Analysis Pending",
     },
-  }[label];
+  };
 
+  const theme = themeConfig[label as keyof typeof themeConfig] || themeConfig.pending;
   const IconComponent = theme.icon;
-
-  // Gauge parameters (270-degree arc)
-  const scoreValue = trustScore?.score ?? 0;
-  const radius = 48;
-  const circumference = 2 * Math.PI * radius;
-  const arcLength = circumference * 0.75;
-  const strokeOffset = arcLength - ((animatedTrust || 0) / 100) * arcLength;
-
-  const trustColor =
-    scoreValue >= 80 ? "#4edea3" : scoreValue >= 50 ? "#ffb95f" : "#ffb4ab";
-
-  const trustCategory =
-    scoreValue >= 80
-      ? "High Trust"
-      : scoreValue >= 50
-      ? "Moderate Trust"
-      : "Low / Risk";
 
   const fraudProbability = fraud?.fraud_probability ?? prediction?.fraud_probability ?? null;
   const fraudPercent = fraudProbability != null ? Math.round(fraudProbability * 100) : null;
+  const scoreValue = trustScore?.score ?? 0;
 
   return (
-    <div
-      className={`bg-[#0b1c30] border ${theme.border} ${theme.glow} rounded-[8px] p-5 sm:p-6 transition-all duration-300`}
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        {/* Left 7 Columns: Verdict, Explanation & Recommended Action */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-[8px] flex items-center justify-center border ${theme.border} bg-[#000f21]`}
-            >
-              <IconComponent size={26} className={theme.accentText} />
+    <div className={`border rounded-2xl p-6 sm:p-8 shadow-sm transition-all duration-200 ${theme.cardBg}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Left Column: Verdict, Explanation & Recommendation */}
+        <div className="lg:col-span-7 space-y-5">
+          <div className="flex items-start gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${theme.iconBg}`}>
+              <IconComponent size={28} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-mono uppercase tracking-widest text-[#8d90a0]">
-                  Official System Verdict
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Integrity Verdict
                 </span>
                 {prediction && (
-                  <span
-                    className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${theme.badgeBg}`}
-                  >
+                  <Badge variant={theme.badgeVariant} size="sm">
                     {prediction.label} • {Math.round(prediction.confidence_score * 100)}% Confidence
-                  </span>
+                  </Badge>
                 )}
               </div>
-              <h2 className={`text-xl sm:text-2xl font-bold tracking-tight mt-0.5 ${theme.accentText}`}>
+              <h2 className={`text-2xl font-bold tracking-tight mt-1 ${theme.titleColor}`}>
                 {prediction ? theme.title : "Forensic Verification Pending"}
               </h2>
             </div>
           </div>
 
-          {/* Explanation Text */}
-          <p className="text-sm text-[#c3c6d7] leading-relaxed">
+          <p className="text-sm text-slate-600 leading-relaxed">
             {prediction?.explanation ||
               "Run the AI forensic engine to synthesize OCR extractions, cryptographic records, digital QR signatures, noise analysis, and duplicate detection into a unified verdict."}
           </p>
 
-          {/* Recommended Action Pill */}
           {prediction?.recommended_action && (
-            <div
-              className={`p-3 rounded-[6px] text-xs leading-relaxed border ${theme.border} ${theme.bannerBg}`}
-            >
-              <span className="font-bold text-[#d3e4fe]">Recommended Protocol: </span>
-              <span className="text-[#c3c6d7]">{prediction.recommended_action}</span>
+            <div className="p-4 bg-white/80 border border-slate-200/80 rounded-xl space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Recommended Operational Action
+              </span>
+              <p className="text-xs font-medium text-slate-800 leading-relaxed">
+                {prediction.recommended_action}
+              </p>
             </div>
           )}
 
-          {!prediction && (
-            <div className="pt-1">
-              <button
-                onClick={onPredict}
-                disabled={predicting}
-                className="px-4 py-2 text-xs font-semibold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[4px] transition flex items-center gap-2 disabled:opacity-50"
-              >
-                <Zap size={14} />
-                <span>{predicting ? "Running Classifier..." : "Execute AI Verdict Model"}</span>
-              </button>
-            </div>
-          )}
+          {/* Action Triggers */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Button
+              onClick={onPredict}
+              loading={predicting}
+              icon={<Sparkles size={15} />}
+            >
+              Run AI Verdict Synthesis
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={onComputeTrust}
+              loading={computingTrust}
+            >
+              Recalculate Trust Score
+            </Button>
+          </div>
         </div>
 
-        {/* Right 5 Columns: Dual Forensic Gauges (Trust Score + Fraud Probability) */}
-        <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4 lg:border-l lg:border-[#1b2b3f] lg:pl-6">
-          {/* Trust Score Radial Meter */}
-          <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-4 flex flex-col items-center text-center">
-            <div className="flex items-center justify-between w-full mb-1">
-              <span className="text-[10px] uppercase font-mono text-[#8d90a0] flex items-center gap-1">
-                <Activity size={11} className="text-[#38bdf8]" /> Trust Score
-              </span>
-              <span
-                className="text-[10px] font-mono px-1.5 py-0.5 rounded border"
-                style={{ color: trustColor, borderColor: `${trustColor}40`, backgroundColor: `${trustColor}15` }}
-              >
-                {trustScore ? trustCategory : "N/A"}
-              </span>
-            </div>
-
-            {/* Circular Gauge */}
-            <div className="relative w-28 h-28 my-1 flex items-center justify-center">
-              <svg width="112" height="112" viewBox="0 0 112 112" className="transform -rotate-90">
-                {/* Background Arc */}
-                <circle
-                  cx="56"
-                  cy="56"
-                  r={radius}
-                  fill="none"
-                  stroke="#102034"
-                  strokeWidth="8"
-                  strokeDasharray={`${arcLength} ${circumference}`}
-                  strokeDashoffset="0"
-                  strokeLinecap="round"
-                  transform="rotate(135 56 56)"
-                />
-                {/* Value Arc */}
-                {trustScore && (
-                  <circle
-                    cx="56"
-                    cy="56"
-                    r={radius}
-                    fill="none"
-                    stroke={trustColor}
-                    strokeWidth="8"
-                    strokeDasharray={`${arcLength} ${circumference}`}
-                    strokeDashoffset={strokeOffset}
-                    strokeLinecap="round"
-                    transform="rotate(135 56 56)"
-                    style={{ transition: "stroke-dashoffset 1s ease-out" }}
-                  />
-                )}
-              </svg>
-
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold font-mono text-[#d3e4fe]">
-                  {trustScore ? Math.round(animatedTrust) : "—"}
-                </span>
-                <span className="text-[10px] font-mono text-[#8d90a0]">/ 100</span>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-[#8d90a0] mt-1">
-              {trustScore ? "Multi-factor reliability" : "Awaiting computation"}
-            </p>
+        {/* Right Column: Trust Score Gauge & Signals */}
+        <div className="lg:col-span-5 flex flex-col sm:flex-row items-center justify-center gap-6 p-6 bg-white border border-slate-200 rounded-2xl shadow-xs">
+          {/* Circular Score Gauge */}
+          <div className="flex flex-col items-center">
+            <ScoreGauge score={scoreValue} size="md" />
+            <span className="text-xs text-slate-500 font-medium mt-1">
+              Weighted AI Trust Metric
+            </span>
           </div>
 
-          {/* Statistical Fraud Probability Meter */}
-          <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-4 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase font-mono text-[#8d90a0] flex items-center gap-1">
-                  <TrendingUp size={11} className="text-[#ffb95f]" /> Fraud Risk
+          {/* Secondary Risk Stat */}
+          {fraudPercent !== null && (
+            <div className="flex flex-col items-center sm:items-start space-y-2 border-t sm:border-t-0 sm:border-l border-slate-100 pt-4 sm:pt-0 sm:pl-6">
+              <span className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">
+                Fraud Risk Index
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-3xl font-extrabold ${fraudPercent > 50 ? "text-red-600" : "text-slate-800"}`}>
+                  {fraudPercent}%
                 </span>
-                {fraudPercent != null && (
-                  <span
-                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
-                      fraudPercent < 30
-                        ? "text-[#4edea3] border-[#4edea3]/30 bg-[#4edea3]/10"
-                        : fraudPercent < 60
-                        ? "text-[#ffb95f] border-[#ffb95f]/30 bg-[#ffb95f]/10"
-                        : "text-[#ffb4ab] border-[#ffb4ab]/30 bg-[#ffb4ab]/10"
-                    }`}
-                  >
-                    {fraudPercent < 30 ? "Low" : fraudPercent < 60 ? "Moderate" : "High Risk"}
-                  </span>
+                {fraudPercent > 50 ? (
+                  <TrendingUp className="w-4 h-4 text-red-500" />
+                ) : (
+                  <TrendingDown className="w-4 h-4 text-emerald-500" />
                 )}
               </div>
-
-              <div className="my-2">
-                <div className="text-3xl font-bold font-mono text-[#d3e4fe]">
-                  {fraudPercent != null ? `${fraudPercent}%` : "—"}
-                </div>
-                <p className="text-[10px] text-[#8d90a0] uppercase font-mono mt-0.5">
-                  Calculated Risk Index
-                </p>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="h-1.5 w-full bg-[#102034] rounded-full overflow-hidden mt-3">
+              <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    (fraudPercent || 0) < 30
-                      ? "bg-[#4edea3]"
-                      : (fraudPercent || 0) < 60
-                      ? "bg-[#ffb95f]"
-                      : "bg-[#ffb4ab]"
+                  className={`h-full rounded-full ${
+                    fraudPercent > 60 ? "bg-red-500" : fraudPercent > 30 ? "bg-amber-500" : "bg-emerald-500"
                   }`}
-                  style={{ width: `${fraudPercent || 0}%` }}
+                  style={{ width: `${fraudPercent}%` }}
                 />
               </div>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {fraudPercent > 60 ? "High Risk Detected" : "Within Expected Bounds"}
+              </span>
             </div>
-
-            <p className="text-[10px] text-[#8d90a0] mt-3 leading-tight italic">
-              Statistical risk metric. Final verdict above dictates system decision.
-            </p>
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+export default FinalVerdictMegaCard;

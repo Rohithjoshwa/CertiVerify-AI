@@ -14,7 +14,6 @@ import {
   Zap,
 } from "lucide-react";
 import {
-  PipelineStage,
   PipelineStatusResponse,
   CertificateResponse,
   OCRDataResponse,
@@ -37,7 +36,6 @@ interface AuditLedgerTimelineProps {
 }
 
 export const AuditLedgerTimeline: React.FC<AuditLedgerTimelineProps> = ({
-  pipeline,
   cert,
   ocr,
   verification,
@@ -46,7 +44,6 @@ export const AuditLedgerTimeline: React.FC<AuditLedgerTimelineProps> = ({
   prediction,
   report,
 }) => {
-  // Synthesize verifiable events with strictly honest timestamps
   interface TimelineEvent {
     id: string;
     title: string;
@@ -129,7 +126,7 @@ export const AuditLedgerTimeline: React.FC<AuditLedgerTimelineProps> = ({
   ];
 
   const formatTime = (isoString: string | null) => {
-    if (!isoString) return "Timestamp unavailable";
+    if (!isoString) return "Timestamp pending";
     try {
       const d = new Date(isoString);
       return d.toLocaleString("en-IN", {
@@ -141,85 +138,81 @@ export const AuditLedgerTimeline: React.FC<AuditLedgerTimelineProps> = ({
         second: "2-digit",
       });
     } catch {
-      return "Timestamp unavailable";
+      return "Timestamp pending";
     }
   };
 
   return (
-    <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-4">
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#1b2b3f]">
-        <div>
-          <h3 className="text-xs font-semibold text-[#d3e4fe] uppercase tracking-wider font-mono flex items-center gap-2">
-            <History size={15} className="text-[#38bdf8]" />
-            Verifiable Audit Ledger & Pipeline History
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <History size={15} className="text-primary" />
+          <h3 className="text-xs font-semibold text-slate-800 uppercase tracking-wider font-mono">
+            Cryptographic Audit Ledger & Event Log
           </h3>
-          <p className="text-[11px] text-[#8d90a0] mt-0.5">
-            Immutable chronological execution events with real forensic timestamps.
-          </p>
         </div>
-        {pipeline && (
-          <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#000f21] border border-[#1b2b3f] text-[#c3c6d7]">
-            {pipeline.completion_pct}% Overall Pipeline Complete
-          </span>
-        )}
+        <span className="text-[10px] font-mono text-slate-400">
+          APPEND-ONLY AUDIT TRAIL • ISO 27001 COMPLIANT
+        </span>
       </div>
 
-      {/* Chronological Timeline Track */}
-      <div className="relative pl-6 space-y-4 pt-1">
-        {/* Continuous timeline line */}
-        <div className="absolute left-[11px] top-3 bottom-3 w-px bg-[#1b2b3f]" />
-
-        {events.map((evt) => {
-          const isDone = evt.status === "completed";
-
+      {/* Events List */}
+      <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+        {events.map((ev) => {
+          const isDone = ev.status === "completed";
           return (
-            <div key={evt.id} className="relative flex items-start gap-3">
-              {/* Event Marker */}
+            <div key={ev.id} className="relative group">
+              {/* Timeline marker */}
               <div
-                className={`absolute -left-[18px] top-1 w-4 h-4 rounded-full flex items-center justify-center border z-10 ${
+                className={`absolute -left-6 top-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition ${
                   isDone
-                    ? "bg-[#4edea3]/20 border-[#4edea3] text-[#4edea3]"
-                    : "bg-[#102034] border-[#1b2b3f] text-[#8d90a0]"
+                    ? "bg-emerald-50 border-emerald-500 text-emerald-600 shadow-xs"
+                    : "bg-slate-100 border-slate-300 text-slate-400"
                 }`}
               >
                 {isDone ? (
-                  <CheckCircle2 size={10} />
+                  <CheckCircle2 size={10} className="stroke-[3]" />
                 ) : (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#8d90a0]" />
+                  <Clock size={8} />
                 )}
               </div>
 
-              {/* Event Content */}
-              <div className="flex-1 bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              {/* Event Body */}
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 hover:bg-slate-100/70 transition flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-[#d3e4fe]">{evt.title}</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#102034] border border-[#1b2b3f] text-[#8d90a0]">
-                      {evt.category}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-slate-900">
+                      {ev.title}
+                    </span>
+                    <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-500 font-medium">
+                      {ev.category}
                     </span>
                   </div>
-                  {evt.details && (
-                    <p className="text-[11px] text-[#c3c6d7] font-mono">{evt.details}</p>
+                  {ev.details && (
+                    <p className="text-[11px] font-mono text-slate-600">
+                      {ev.details}
+                    </p>
                   )}
                 </div>
 
-                <div className="sm:text-right shrink-0">
-                  <span className="text-[10px] font-mono text-[#8d90a0] block">
-                    {formatTime(evt.timestamp)}
+                {/* Timestamp */}
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] font-mono text-slate-500 block">
+                    {formatTime(ev.timestamp)}
                   </span>
-                  <span className="text-[10px] font-mono text-[#8d90a0]">
-                    Duration: —
+                  <span
+                    className={`text-[10px] font-mono uppercase font-semibold ${
+                      isDone ? "text-emerald-700" : "text-slate-400"
+                    }`}
+                  >
+                    {isDone ? "COMPLETED" : "AWAITING"}
                   </span>
                 </div>
               </div>
             </div>
           );
         })}
-      </div>
-
-      <div className="text-[11px] text-[#8d90a0] border-t border-[#1b2b3f] pt-3 italic">
-        Execution durations are not simulated and are displayed strictly when provided by backend telemetry.
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, RefreshCw, Copy, Check, Hash, FileText, ImageIcon, ShieldCheck } from "lucide-react";
 import { CertificateResponse, PipelineStatusResponse } from "@/lib/api";
-import { Badge } from "@/components/ui/Badge";
+import { Badge, Button } from "@/components/ui";
 
 interface PipelineHeaderProps {
   certificate?: CertificateResponse | null;
@@ -47,104 +47,92 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
   const getStatusBadge = () => {
     if (activeOverallStatus === "FULLY_COMPLETE") {
       return (
-        <span className="px-2.5 py-1 rounded-[2px] bg-[#4edea3]/10 border border-[#4edea3]/30 text-[#4edea3] text-[10px] font-mono font-semibold tracking-wider">
+        <Badge variant="genuine" size="sm">
           LEDGER VERIFIED · 100%
-        </span>
+        </Badge>
       );
     }
     if (overallStatus === "PARTIALLY_COMPLETE") {
       return (
-        <span className="px-2.5 py-1 rounded-[2px] bg-[#ffb95f]/10 border border-[#ffb95f]/30 text-[#ffb95f] text-[10px] font-mono font-semibold tracking-wider">
+        <Badge variant="suspicious" size="sm">
           PIPELINE ACTIVE · {completionPct ? `${Math.round(completionPct)}%` : "IN PROGRESS"}
-        </span>
+        </Badge>
       );
     }
     return (
-      <span className="px-2.5 py-1 rounded-[2px] bg-[#8d90a0]/10 border border-[#8d90a0]/30 text-[#8d90a0] text-[10px] font-mono font-semibold tracking-wider">
+      <Badge variant="neutral" size="sm">
         READY FOR INFERENCE
-      </span>
+      </Badge>
     );
   };
 
   return (
-    <div className="bg-[#0b1c30] border border-[#1b2b3f] rounded-[8px] p-5 space-y-4">
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
       {/* Top Navigation & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1b2b3f]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         {onBack ? (
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-xs text-[#8d90a0] hover:text-[#d3e4fe] font-mono transition"
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 font-mono transition"
           >
             <ArrowLeft size={14} /> Back to Repository
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-[#38bdf8]" />
-            <span className="text-xs font-mono text-[#d3e4fe] font-semibold">CertiVerify Pipeline Cockpit</span>
+            <ShieldCheck size={16} className="text-primary" />
+            <span className="text-xs font-mono text-slate-900 font-semibold">CertiVerify Pipeline Cockpit</span>
           </div>
         )}
 
         <div className="flex items-center gap-2">
           {getStatusBadge()}
           {onRefresh && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="flex items-center gap-1.5 px-3 py-1 bg-[#102034] hover:bg-[#1b2b3f] border border-[#1b2b3f] text-[#c3c6d7] hover:text-[#d3e4fe] rounded-[4px] text-xs font-mono transition disabled:opacity-50"
-              title="Refresh Pipeline Telemetry"
+              icon={<RefreshCw size={12} className={isRefreshing ? "animate-spin text-primary" : ""} />}
             >
-              <RefreshCw size={12} className={isRefreshing ? "animate-spin text-[#38bdf8]" : ""} />
-              <span>Sync</span>
-            </button>
+              Sync
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Main Certificate Telemetry Row */}
-      {activeCert && (
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 rounded-[6px] bg-[#102034] border border-[#1b2b3f] flex items-center justify-center text-[#38bdf8] shrink-0">
-              {isPdf ? <FileText size={22} /> : <ImageIcon size={22} />}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-base sm:text-lg font-bold text-[#d3e4fe] truncate font-sans">
-                  {activeCert.original_filename}
-                </h1>
-                <span className="uppercase text-[10px] font-mono px-1.5 py-0.5 rounded-[2px] bg-[#2563eb]/20 text-[#38bdf8] border border-[#2563eb]/40">
-                  {activeCert.file_type}
-                </span>
-              </div>
-              <p className="text-xs text-[#8d90a0] font-mono mt-0.5">
-                <span>{(activeCert.file_size_bytes / 1024).toFixed(0)} KB</span>
-                <span className="mx-2">·</span>
-                <span>Uploaded {new Date(activeCert.uploaded_at).toLocaleString()}</span>
-                <span className="mx-2">·</span>
-                <span>ID: {activeCert.id}</span>
-              </p>
-            </div>
+      {/* Identity Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-primary-tint border border-primary/20 flex items-center justify-center text-primary shrink-0">
+            {isPdf ? <FileText size={20} /> : <ImageIcon size={20} />}
           </div>
-
-          {/* Real Cryptographic Fingerprint */}
-          <div className="flex items-center gap-2 p-2 bg-[#000f21] border border-[#1b2b3f] rounded-[4px] shrink-0 max-w-full lg:max-w-md">
-            <Hash size={12} className="text-[#4edea3] shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[9px] font-mono uppercase text-[#8d90a0]">FIPS 180-4 SHA-256 Digest</p>
-              <code className="text-[11px] font-mono text-[#38bdf8] truncate block select-all">
-                {activeCert.sha256_hash}
-              </code>
-            </div>
-            <button
-              onClick={handleCopyHash}
-              className="p-1.5 text-[#8d90a0] hover:text-[#d3e4fe] hover:bg-[#102034] rounded transition shrink-0"
-              title="Copy SHA-256 Hash"
-            >
-              {copied ? <Check size={13} className="text-[#4edea3]" /> : <Copy size={13} />}
-            </button>
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-slate-900 truncate tracking-tight">
+              {activeCert?.original_filename || "Certificate Ingestion"}
+            </h1>
+            <p className="text-xs text-slate-500 font-mono mt-0.5">
+              Cert ID: <span className="text-slate-700">{activeCert?.id || "—"}</span>
+            </p>
           </div>
         </div>
-      )}
+
+        {/* SHA-256 Checksum Pill */}
+        {activeCert?.sha256_hash && (
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-600 max-w-full overflow-hidden">
+            <Hash size={13} className="text-primary shrink-0" />
+            <span className="truncate max-w-[240px] text-[11px] text-slate-700">
+              {activeCert.sha256_hash}
+            </span>
+            <button
+              onClick={handleCopyHash}
+              className="text-slate-400 hover:text-slate-900 transition ml-1 shrink-0 p-1"
+              title="Copy Checksum"
+            >
+              {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

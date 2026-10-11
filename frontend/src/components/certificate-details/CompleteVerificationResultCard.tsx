@@ -8,14 +8,12 @@ import {
   ShieldX,
   FileText,
   Download,
-  ExternalLink,
   QrCode,
   Link2,
   ShieldAlert,
   Fingerprint,
   CheckCircle2,
   Layers,
-  ArrowRight,
   Sparkles,
   Loader2,
   FileCheck,
@@ -31,6 +29,7 @@ import {
   VerificationReportResponse,
   CertificateResponse,
 } from "@/lib/api";
+import { Badge, Button } from "@/components/ui";
 
 interface CompleteVerificationResultCardProps {
   prediction: FinalPredictionResponse | null;
@@ -69,44 +68,48 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
     switch (verdict) {
       case "genuine":
         return {
-          badgeBg: "bg-[#4edea3]/15",
-          badgeBorder: "border-[#4edea3]/40",
-          badgeText: "text-[#4edea3]",
-          bannerBg: "bg-[#4edea3]/10",
-          border: "border-[#4edea3]/30",
+          variant: "genuine" as const,
+          badgeBg: "bg-emerald-50",
+          badgeBorder: "border-emerald-200",
+          badgeText: "text-emerald-700",
+          bannerBg: "bg-emerald-50/60",
+          border: "border-emerald-200",
           icon: ShieldCheck,
           label: "GENUINE CERTIFICATE",
           statusText: "Verified Authentic & Tamper-Free",
         };
       case "suspicious":
         return {
-          badgeBg: "bg-[#ffb95f]/15",
-          badgeBorder: "border-[#ffb95f]/40",
-          badgeText: "text-[#ffb95f]",
-          bannerBg: "bg-[#ffb95f]/10",
-          border: "border-[#ffb95f]/30",
+          variant: "suspicious" as const,
+          badgeBg: "bg-amber-50",
+          badgeBorder: "border-amber-200",
+          badgeText: "text-amber-700",
+          bannerBg: "bg-amber-50/60",
+          border: "border-amber-200",
           icon: AlertTriangle,
           label: "SUSPICIOUS / IRREGULAR",
           statusText: "Anomalies Detected — Manual Review Required",
         };
       case "fake":
         return {
-          badgeBg: "bg-[#ffb4ab]/15",
-          badgeBorder: "border-[#ffb4ab]/40",
-          badgeText: "text-[#ffb4ab]",
-          bannerBg: "bg-[#ffb4ab]/10",
-          border: "border-[#ffb4ab]/30",
+          variant: "fake" as const,
+          badgeBg: "bg-rose-50",
+          badgeBorder: "border-rose-200",
+          badgeText: "text-rose-700",
+          bannerBg: "bg-rose-50/60",
+          border: "border-rose-200",
           icon: ShieldX,
           label: "FORGERY / COUNTERFEIT",
           statusText: "Evidence of Tampering or Discrepancy",
         };
       default:
         return {
-          badgeBg: "bg-[#8d90a0]/15",
-          badgeBorder: "border-[#8d90a0]/40",
-          badgeText: "text-[#c3c6d7]",
-          bannerBg: "bg-[#8d90a0]/10",
-          border: "border-[#8d90a0]/30",
+          variant: "neutral" as const,
+          badgeBg: "bg-slate-50",
+          badgeBorder: "border-slate-200",
+          badgeText: "text-slate-700",
+          bannerBg: "bg-slate-50/60",
+          border: "border-slate-200",
           icon: ShieldAlert,
           label: "VERIFICATION COMPLETED",
           statusText: "Analysis finalized",
@@ -117,13 +120,11 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
   const theme = getVerdictTheme();
   const VerdictIcon = theme.icon;
 
-  // Real document type formatted
   const certificateType =
     docType?.predicted_type ||
     validation?.document_type?.replace(/_/g, " ") ||
     "Academic Credential";
 
-  // Exact real metrics
   const predictionConfidence = Math.round(prediction.confidence_score * 100);
   const trustScoreValue = trustScore?.score !== undefined ? `${trustScore.score}/100` : null;
   const fraudProbabilityValue =
@@ -135,7 +136,6 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
   const ocrAccuracyValue =
     ocrData?.ocr_accuracy !== undefined ? `${Math.round(ocrData.ocr_accuracy * 100)}%` : null;
 
-  // 4-Vector Findings with semantic correctness: NOT_DETECTED != INVALID, UNAVAILABLE != FAILED
   const qrStatus = verification?.evidence?.qr?.status || (verification?.verification_summary?.qr_checked ? "CHECKED" : "UNAVAILABLE");
   const blockchainStatus = verification?.evidence?.blockchain?.status || (verification?.verification_summary?.blockchain_checked ? "CHECKED" : "NOT_REGISTERED");
   const tamperingStatus =
@@ -150,104 +150,105 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
   return (
     <section 
       aria-label="Complete Certificate Verification Result"
-      className={`bg-[#0b1c30] border ${theme.border} rounded-[8px] p-6 shadow-2xl space-y-6 relative overflow-hidden`}
+      className={`bg-white border ${theme.border} rounded-xl p-6 shadow-sm space-y-6 relative overflow-hidden`}
     >
       {/* Top Banner & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1b2b3f]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-[6px] ${theme.badgeBg} ${theme.badgeBorder} border shrink-0`}>
+          <div className={`p-2.5 rounded-lg ${theme.badgeBg} ${theme.badgeBorder} border shrink-0`}>
             <VerdictIcon size={24} className={theme.badgeText} />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#d3e4fe]">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
                 VERIFICATION RESULT
               </span>
-              <span className={`px-2 py-0.5 rounded-[2px] font-mono text-[11px] font-bold border ${theme.badgeBg} ${theme.badgeBorder} ${theme.badgeText}`}>
+              <Badge variant={theme.variant} size="md">
                 ✓ {theme.label}
-              </span>
+              </Badge>
             </div>
-            <p className="text-xs text-[#8d90a0] font-mono mt-0.5">
-              Certificate Type: <span className="text-[#d3e4fe] font-sans font-semibold capitalize">{certificateType}</span>
+            <p className="text-xs text-slate-500 font-mono mt-0.5">
+              Certificate Type: <span className="text-slate-800 font-sans font-semibold capitalize">{certificateType}</span>
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {report && (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={onDownloadReport}
               disabled={downloadingReport}
-              className="px-3.5 py-1.5 text-xs font-semibold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[4px] shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
-              title="Download authenticated PDF verification report"
+              icon={downloadingReport ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             >
-              {downloadingReport ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-              <span>{downloadingReport ? "Downloading..." : "Download Report"}</span>
-            </button>
+              {downloadingReport ? "Downloading..." : "Download Report"}
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onViewReport}
-            className="px-3 py-1.5 text-xs font-medium bg-[#102034] hover:bg-[#1b2b3f] text-[#c3c6d7] hover:text-[#d3e4fe] rounded-[4px] border border-[#1b2b3f] transition flex items-center gap-1.5"
+            icon={<FileText size={13} className="text-primary" />}
           >
-            <FileText size={13} className="text-[#38bdf8]" />
-            <span>View Full Report</span>
-          </button>
+            View Full Report
+          </Button>
         </div>
       </div>
 
       {/* Core AI Verdict Explanation */}
-      <div className={`p-4 rounded-[6px] ${theme.bannerBg} border ${theme.border} space-y-2`}>
+      <div className={`p-4 rounded-lg ${theme.bannerBg} border ${theme.border} space-y-2`}>
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span className="text-xs font-bold text-[#d3e4fe] flex items-center gap-1.5">
+          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
             <CheckCircle2 size={14} className={theme.badgeText} />
             {theme.statusText}
           </span>
           {prediction.recommended_action && (
-            <span className="text-[11px] font-mono text-[#8d90a0]">
-              Action: <span className="text-[#d3e4fe]">{prediction.recommended_action}</span>
+            <span className="text-[11px] font-mono text-slate-500">
+              Action: <span className="text-slate-800 font-semibold">{prediction.recommended_action}</span>
             </span>
           )}
         </div>
-        <p className="text-xs text-[#c3c6d7] leading-relaxed">
+        <p className="text-xs text-slate-600 leading-relaxed">
           {prediction.explanation}
         </p>
       </div>
 
-      {/* Exact Core Metrics Grid (No fake accuracy formulas) */}
+      {/* Exact Core Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 block">
             Prediction Confidence
           </span>
-          <span className="text-xl font-mono font-bold text-[#d3e4fe]">
+          <span className="text-xl font-mono font-bold text-slate-900">
             {predictionConfidence}%
           </span>
         </div>
 
-        <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 block">
             Trust Score
           </span>
-          <span className="text-xl font-mono font-bold text-[#4edea3]">
+          <span className="text-xl font-mono font-bold text-emerald-600">
             {trustScoreValue || "N/A"}
           </span>
         </div>
 
-        <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 block">
             Fraud Probability
           </span>
-          <span className="text-xl font-mono font-bold text-[#ffb95f]">
+          <span className="text-xl font-mono font-bold text-amber-600">
             {fraudProbabilityValue || "N/A"}
           </span>
         </div>
 
-        <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8d90a0] block">
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 block">
             OCR Confidence
           </span>
-          <span className="text-xl font-mono font-bold text-[#38bdf8]">
+          <span className="text-xl font-mono font-bold text-primary">
             {ocrAccuracyValue || "N/A"}
           </span>
         </div>
@@ -255,25 +256,25 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
 
       {/* 4-Vector Evidence Findings Summary */}
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-[#d3e4fe] uppercase tracking-wider font-mono flex items-center gap-1.5">
-          <Layers size={13} className="text-[#38bdf8]" />
+        <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider font-mono flex items-center gap-1.5">
+          <Layers size={13} className="text-primary" />
           Verification Evidence Matrix
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* QR Code */}
-          <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3 space-y-1">
-            <span className="text-[10px] font-mono text-[#8d90a0] uppercase flex items-center gap-1">
-              <QrCode size={11} className="text-[#38bdf8]" />
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
+            <span className="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-1">
+              <QrCode size={11} className="text-primary" />
               QR Verification
             </span>
             <div className="flex items-center justify-between pt-0.5">
               <span className={`text-xs font-mono font-semibold ${
                 qrStatus === "VERIFIED" || qrStatus === "PASS"
-                  ? "text-[#4edea3]"
+                  ? "text-emerald-700"
                   : qrStatus === "NOT_FOUND"
-                  ? "text-[#ffb95f]"
-                  : "text-[#8d90a0]"
+                  ? "text-amber-700"
+                  : "text-slate-500"
               }`}>
                 {qrStatus === "VERIFIED" ? "Verified" : qrStatus === "NOT_FOUND" ? "Not Present" : qrStatus}
               </span>
@@ -281,16 +282,16 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
           </div>
 
           {/* Blockchain */}
-          <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3 space-y-1">
-            <span className="text-[10px] font-mono text-[#8d90a0] uppercase flex items-center gap-1">
-              <Link2 size={11} className="text-[#4edea3]" />
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
+            <span className="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-1">
+              <Link2 size={11} className="text-emerald-600" />
               Blockchain Proof
             </span>
             <div className="flex items-center justify-between pt-0.5">
               <span className={`text-xs font-mono font-semibold ${
                 blockchainStatus === "VERIFIED" || blockchainStatus === "MATCH"
-                  ? "text-[#4edea3]"
-                  : "text-[#8d90a0]"
+                  ? "text-emerald-700"
+                  : "text-slate-500"
               }`}>
                 {blockchainStatus === "VERIFIED" ? "Verified" : "Not Registered"}
               </span>
@@ -298,18 +299,18 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
           </div>
 
           {/* Tampering */}
-          <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3 space-y-1">
-            <span className="text-[10px] font-mono text-[#8d90a0] uppercase flex items-center gap-1">
-              <ShieldAlert size={11} className="text-[#ffb95f]" />
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
+            <span className="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-1">
+              <ShieldAlert size={11} className="text-amber-600" />
               Tampering Scan
             </span>
             <div className="flex items-center justify-between pt-0.5">
               <span className={`text-xs font-mono font-semibold ${
                 tamperingStatus === "NOT_DETECTED"
-                  ? "text-[#4edea3]"
+                  ? "text-emerald-700"
                   : tamperingStatus === "TAMPERED"
-                  ? "text-[#ffb4ab]"
-                  : "text-[#8d90a0]"
+                  ? "text-rose-700"
+                  : "text-slate-500"
               }`}>
                 {tamperingStatus === "NOT_DETECTED" ? "Not Detected" : tamperingStatus}
               </span>
@@ -317,18 +318,18 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
           </div>
 
           {/* Duplicate */}
-          <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3 space-y-1">
-            <span className="text-[10px] font-mono text-[#8d90a0] uppercase flex items-center gap-1">
-              <Fingerprint size={11} className="text-[#38bdf8]" />
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
+            <span className="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-1">
+              <Fingerprint size={11} className="text-primary" />
               Duplicate Check
             </span>
             <div className="flex items-center justify-between pt-0.5">
               <span className={`text-xs font-mono font-semibold ${
                 duplicateStatus === "NOT_DETECTED"
-                  ? "text-[#4edea3]"
+                  ? "text-emerald-700"
                   : duplicateStatus === "DUPLICATE"
-                  ? "text-[#ffb4ab]"
-                  : "text-[#8d90a0]"
+                  ? "text-rose-700"
+                  : "text-slate-500"
               }`}>
                 {duplicateStatus === "NOT_DETECTED" ? "Not Detected" : duplicateStatus}
               </span>
@@ -337,51 +338,51 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
         </div>
       </div>
 
-      {/* Extracted Certificate Fields Summary (Filtered from internal metadata keys) */}
+      {/* Extracted Certificate Fields Summary */}
       {ocrData && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-[#d3e4fe] uppercase tracking-wider font-mono flex items-center gap-1.5">
-            <Sparkles size={13} className="text-[#38bdf8]" />
+          <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <Sparkles size={13} className="text-primary" />
             Verified Certificate Fields
           </h3>
 
-          <div className="bg-[#000f21] border border-[#1b2b3f] rounded-[6px] p-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
             {ocrData.student_name && (
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#8d90a0] block">Student Name</span>
-                <span className="font-medium text-[#d3e4fe]">{ocrData.student_name}</span>
+                <span className="text-[10px] font-mono uppercase text-slate-500 block">Student Name</span>
+                <span className="font-semibold text-slate-900">{ocrData.student_name}</span>
               </div>
             )}
             {ocrData.university_name && (
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#8d90a0] block">University / Authority</span>
-                <span className="font-medium text-[#d3e4fe]">{ocrData.university_name}</span>
+                <span className="text-[10px] font-mono uppercase text-slate-500 block">University / Authority</span>
+                <span className="font-semibold text-slate-900">{ocrData.university_name}</span>
               </div>
             )}
             {(ocrData.register_number || ocrData.roll_number) && (
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#8d90a0] block">Registration / Roll No</span>
-                <span className="font-mono text-[#d3e4fe]">{ocrData.register_number || ocrData.roll_number}</span>
+                <span className="text-[10px] font-mono uppercase text-slate-500 block">Registration / Roll No</span>
+                <span className="font-mono text-slate-800 font-medium">{ocrData.register_number || ocrData.roll_number}</span>
               </div>
             )}
             {ocrData.date_of_issue && (
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#8d90a0] block">Date of Issue</span>
-                <span className="font-mono text-[#d3e4fe]">{ocrData.date_of_issue}</span>
+                <span className="text-[10px] font-mono uppercase text-slate-500 block">Date of Issue</span>
+                <span className="font-mono text-slate-800">{ocrData.date_of_issue}</span>
               </div>
             )}
             {(ocrData.cgpa || ocrData.percentage) && (
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#8d90a0] block">Academic Score</span>
-                <span className="font-mono text-[#d3e4fe]">
+                <span className="text-[10px] font-mono uppercase text-slate-500 block">Academic Score</span>
+                <span className="font-mono text-slate-800">
                   {[ocrData.cgpa ? `CGPA: ${ocrData.cgpa}` : null, ocrData.percentage ? `${ocrData.percentage}%` : null].filter(Boolean).join(" • ")}
                 </span>
               </div>
             )}
             {cert?.original_filename && (
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#8d90a0] block">Ingested File</span>
-                <span className="text-[#c3c6d7] truncate block">{cert.original_filename}</span>
+                <span className="text-[10px] font-mono uppercase text-slate-500 block">Ingested File</span>
+                <span className="text-slate-600 truncate block">{cert.original_filename}</span>
               </div>
             )}
           </div>
@@ -389,18 +390,18 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
       )}
 
       {/* Navigation Footer Controls */}
-      <div className="pt-3 border-t border-[#1b2b3f] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+      <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
           <Link
             href="/dashboard/certificates"
-            className="text-xs text-[#8d90a0] hover:text-[#d3e4fe] transition flex items-center gap-1 font-mono"
+            className="text-xs text-slate-500 hover:text-slate-900 transition flex items-center gap-1 font-mono"
           >
             <span>← Certificate Registry</span>
           </Link>
-          <span className="text-[#1b2b3f]">|</span>
+          <span className="text-slate-300">|</span>
           <Link
             href="/dashboard"
-            className="text-xs text-[#8d90a0] hover:text-[#d3e4fe] transition font-mono"
+            className="text-xs text-slate-500 hover:text-slate-900 transition font-mono"
           >
             Dashboard Overview
           </Link>
@@ -408,12 +409,12 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
 
         <div className="flex items-center gap-2">
           {report ? (
-            <span className="text-[11px] font-mono text-[#4edea3] flex items-center gap-1">
+            <span className="text-[11px] font-mono text-emerald-700 flex items-center gap-1">
               <FileCheck size={12} />
               Dossier Ready ({report.verification_id})
             </span>
           ) : (
-            <span className="text-[11px] font-mono text-[#8d90a0]">
+            <span className="text-[11px] font-mono text-slate-400">
               Report generation ready
             </span>
           )}

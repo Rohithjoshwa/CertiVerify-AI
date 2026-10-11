@@ -610,16 +610,16 @@ return (
         )}
 
         {!ocrData && (
-          <div className="glass-panel rounded-xl p-8 text-center border border-dashed border-surface-border">
-            <ScanLine className="mx-auto mb-3 text-brand-500 opacity-60" size={36} />
-            <p className="text-white font-medium mb-1">OCR Processing Pending</p>
-            <p className="text-sm text-gray-400 mb-4 max-w-md mx-auto">
+          <div className="bg-white rounded-xl p-8 text-center border border-dashed border-slate-300 shadow-sm">
+            <ScanLine className="mx-auto mb-3 text-primary opacity-60" size={36} />
+            <p className="text-slate-900 font-semibold mb-1">OCR Processing Pending</p>
+            <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
               Execute optical character recognition to extract student records, grades, and security credentials into the verification pipeline.
             </p>
             <button
               onClick={handleRunOcr}
               disabled={running}
-              className="rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-medium px-5 py-2.5 transition inline-flex items-center gap-2 text-sm shadow-sm"
+              className="rounded-lg bg-primary hover:bg-primary-hover disabled:opacity-60 text-white font-medium px-5 py-2.5 transition inline-flex items-center gap-2 text-sm shadow-sm"
             >
               {running && <Loader2 size={16} className="animate-spin" />}
               {running ? (ocrStage ?? "Processing OCR...") : "Run OCR Extraction"}
@@ -859,7 +859,7 @@ function TrustGauge({ score }: { score: number }) {
     <div className="relative shrink-0" style={{ width: 140, height: 140 }}>
       <svg width="140" height="140" viewBox="0 0 140 140">
         <circle
-          cx="70" cy="70" r={radius} fill="none" stroke="#1f2937" strokeWidth="10"
+          cx="70" cy="70" r={radius} fill="none" stroke="#E2E8F0" strokeWidth="10"
           strokeDasharray={`${arcLength} ${circumference}`}
           strokeDashoffset={0}
           strokeLinecap="round"
@@ -875,7 +875,7 @@ function TrustGauge({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-white">{Math.round(animated)}</span>
+        <span className="text-2xl font-bold text-slate-900">{Math.round(animated)}</span>
         <span className="text-xs font-medium" style={{ color }}>{label}</span>
       </div>
     </div>
@@ -959,7 +959,7 @@ function EvidenceBreakdownPanel({
       return { color: "text-suspicious", bg: "bg-suspicious/10 border-suspicious/20", icon: "⚠" };
     if (["FAIL", "INVALID", "MISMATCH", "HIGH_RISK", "DUPLICATE"].includes(s))
       return { color: "text-fake", bg: "bg-fake/10 border-fake/20", icon: "✗" };
-    return { color: "text-gray-500", bg: "bg-surface-panel border-surface-border", icon: "—" };
+    return { color: "text-slate-500", bg: "bg-slate-50 border-slate-200", icon: "—" };
   }
 
   function displayStatus(factor: EvidenceBreakdown[string]) {
@@ -974,14 +974,14 @@ function EvidenceBreakdownPanel({
   }
 
   return (
-    <div className="mt-4 glass-panel rounded-xl p-5 border border-surface-border">
+    <div className="mt-4 bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <ListChecks size={15} className="text-brand-500" />
+        <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <ListChecks size={15} className="text-primary" />
           AI Evidence Breakdown
         </h3>
         {fraudProbability != null && (
-          <span className={`text-xs font-medium ${fraudProbability < 0.3 ? "text-genuine" : fraudProbability < 0.6 ? "text-suspicious" : "text-fake"}`}>
+          <span className={`text-xs font-semibold ${fraudProbability < 0.3 ? "text-genuine" : fraudProbability < 0.6 ? "text-suspicious" : "text-fake"}`}>
             Fraud Risk: {Math.round(fraudProbability * 100)}%
           </span>
         )}
@@ -998,11 +998,11 @@ function EvidenceBreakdownPanel({
             <div key={key} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${cfg.bg}`}>
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-bold ${cfg.color}`}>{cfg.icon}</span>
-                <span className="text-xs text-gray-300">{label}</span>
+                <span className="text-xs text-slate-700 font-medium">{label}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                {score && <span className="text-xs text-gray-500">{score}</span>}
-                <span className={`text-xs font-medium ${cfg.color}`}>
+                {score && <span className="text-xs text-slate-500 font-mono">{score}</span>}
+                <span className={`text-xs font-semibold ${cfg.color}`}>
                   {status.replace(/_/g, " ")}
                 </span>
               </div>
@@ -1014,13 +1014,13 @@ function EvidenceBreakdownPanel({
       {/* Reasons list */}
       {reasons && reasons.length > 0 && (
         <div>
-          <p className="text-xs text-gray-500 mb-2 font-medium">Verification Reasons:</p>
+          <p className="text-xs text-slate-500 mb-2 font-medium">Verification Reasons:</p>
           <ul className="space-y-1">
             {reasons.map((r, i) => {
               const isPass = r.startsWith("✓");
               const isFail = r.startsWith("✗");
               const isWarn = r.startsWith("⚠");
-              const color = isPass ? "text-genuine" : isFail ? "text-fake" : isWarn ? "text-suspicious" : "text-gray-400";
+              const color = isPass ? "text-genuine" : isFail ? "text-fake" : isWarn ? "text-suspicious" : "text-slate-600";
               return (
                 <li key={i} className={`text-xs ${color} leading-relaxed`}>{r}</li>
               );
@@ -1070,8 +1070,8 @@ function EnhancedVerificationPanel({
     MATCH: { color: "text-genuine", bg: "bg-genuine/10 border-genuine/20", icon: "✓", label: "SHA-256 Hash Match" },
     MISMATCH: { color: "text-fake", bg: "bg-fake/10 border-fake/20", icon: "✗", label: "SHA-256 Hash Mismatch" },
     NOT_REGISTERED: { color: "text-suspicious", bg: "bg-suspicious/10 border-suspicious/20", icon: "⚠", label: "Hash Not Registered" },
-    NOT_CHECKED: { color: "text-gray-500", bg: "bg-surface-panel border-surface-border", icon: "—", label: "Hash Not Checked" },
-  }[hashStatus || "NOT_CHECKED"] ?? { color: "text-gray-500", bg: "bg-surface-panel border-surface-border", icon: "—", label: hashStatus };
+    NOT_CHECKED: { color: "text-slate-500", bg: "bg-slate-50 border-slate-200", icon: "—", label: "Hash Not Checked" },
+  }[hashStatus || "NOT_CHECKED"] ?? { color: "text-slate-500", bg: "bg-slate-50 border-slate-200", icon: "—", label: hashStatus };
 
   // ── cross-validation badge ────────────────────────────────────────────────
   const cvStatus = verification.cross_validation_status;
@@ -1079,8 +1079,8 @@ function EnhancedVerificationPanel({
     CONSISTENT: { color: "text-genuine", bg: "bg-genuine/10 border-genuine/20", icon: "✓", label: "QR ↔ OCR Consistent" },
     MISMATCH: { color: "text-fake", bg: "bg-fake/10 border-fake/20", icon: "✗", label: "QR ↔ OCR Mismatch" },
     PARTIAL: { color: "text-suspicious", bg: "bg-suspicious/10 border-suspicious/20", icon: "⚠", label: "QR ↔ OCR Partial" },
-    UNAVAILABLE: { color: "text-gray-500", bg: "bg-surface-panel border-surface-border", icon: "—", label: "Cross-val Unavailable" },
-  }[cvStatus || "UNAVAILABLE"] ?? { color: "text-gray-500", bg: "bg-surface-panel border-surface-border", icon: "—", label: cvStatus };
+    UNAVAILABLE: { color: "text-slate-500", bg: "bg-slate-50 border-slate-200", icon: "—", label: "Cross-val Unavailable" },
+  }[cvStatus || "UNAVAILABLE"] ?? { color: "text-slate-500", bg: "bg-slate-50 border-slate-200", icon: "—", label: cvStatus };
 
   // ── composite status pill ─────────────────────────────────────────────────
   const compositeConfig: Record<string, { color: string; bg: string; label: string }> = {
@@ -1088,7 +1088,7 @@ function EnhancedVerificationPanel({
     VERIFIED: { color: "text-genuine", bg: "bg-genuine/10 border-genuine/20", label: "✓ Verified" },
     SUSPICIOUS: { color: "text-suspicious", bg: "bg-suspicious/10 border-suspicious/20", label: "⚠ Suspicious" },
     HIGH_RISK: { color: "text-fake", bg: "bg-fake/10 border-fake/20", label: "✗ High Risk" },
-    INSUFFICIENT_EVIDENCE: { color: "text-gray-400", bg: "bg-surface-panel border-surface-border", label: "— Insufficient Evidence" },
+    INSUFFICIENT_EVIDENCE: { color: "text-slate-500", bg: "bg-slate-50 border-slate-200", label: "— Insufficient Evidence" },
   };
   const compositeStatus = enhanced?.composite_status ?? null;
   const cfg = compositeStatus ? compositeConfig[compositeStatus] : null;
@@ -1097,10 +1097,10 @@ function EnhancedVerificationPanel({
   if (!hasAnyData && !enhanced) return null;
 
   return (
-    <div className="mt-4 glass-panel rounded-xl p-5 border border-surface-border">
+    <div className="mt-4 bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <ShieldCheck size={15} className="text-brand-500" />
+        <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <ShieldCheck size={15} className="text-primary" />
           Verification Evidence
         </h3>
         {cfg && (
@@ -1109,7 +1109,7 @@ function EnhancedVerificationPanel({
           </span>
         )}
         {loading && !cfg && (
-          <span className="text-xs text-gray-500 flex items-center gap-1">
+          <span className="text-xs text-slate-500 flex items-center gap-1">
             <Loader2 size={11} className="animate-spin" /> Loading composite...
           </span>
         )}
@@ -1131,7 +1131,7 @@ function EnhancedVerificationPanel({
         )}
         {/* QR type badge */}
         {verification.qr_present && verification.qr_decoded_data && (
-          <span className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-surface-panel border-surface-border text-gray-400">
+          <span className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-slate-50 border-slate-200 text-slate-600">
             QR type: {(verification.qr_decoded_data as Record<string, unknown>)["_qr_type"] as string ?? "detected"}
           </span>
         )}
@@ -1140,15 +1140,15 @@ function EnhancedVerificationPanel({
       {/* Cross-validation mismatches */}
       {verification.cross_validation_mismatches && verification.cross_validation_mismatches.length > 0 && (
         <div className="mb-3">
-          <p className="text-xs text-gray-500 mb-1.5 font-medium">Cross-validation mismatches:</p>
+          <p className="text-xs text-slate-500 mb-1.5 font-medium">Cross-validation mismatches:</p>
           <ul className="space-y-1">
             {verification.cross_validation_mismatches.map((m, i) => (
               <li key={i} className="text-xs text-fake flex items-start gap-1.5">
                 <span className="font-bold mt-px">✗</span>
                 <span>
-                  <span className="text-gray-400">{m.field}:</span>{" "}
-                  QR <span className="text-white">"{m.qr_value}"</span>{" "}
-                  vs OCR <span className="text-white">"{m.ocr_value}"</span>
+                  <span className="text-slate-500">{m.field}:</span>{" "}
+                  QR <span className="text-slate-900 font-semibold">"{m.qr_value}"</span>{" "}
+                  vs OCR <span className="text-slate-900 font-semibold">"{m.ocr_value}"</span>
                 </span>
               </li>
             ))}
@@ -1158,14 +1158,14 @@ function EnhancedVerificationPanel({
 
       {/* Composite detail from /verify-enhanced */}
       {enhanced?.composite_detail && (
-        <p className="text-xs text-gray-400 leading-relaxed">{enhanced.composite_detail}</p>
+        <p className="text-xs text-slate-600 leading-relaxed">{enhanced.composite_detail}</p>
       )}
       {enhanced && (
-        <p className="text-xs text-gray-600 mt-1">
+        <p className="text-xs text-slate-500 mt-1">
           {enhanced.checks_completed}/{enhanced.checks_total} verification checks completed
         </p>
       )}
-      {error && <p className="text-xs text-gray-600 mt-1">{error}</p>}
+      {error && <p className="text-xs text-slate-500 mt-1">{error}</p>}
     </div>
   );
 }
@@ -1207,20 +1207,20 @@ function TamperingDetailPanel({
     const color = risk < 30 ? "bg-genuine" : risk < 60 ? "bg-suspicious" : "bg-fake";
     return (
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-1.5 bg-surface-border rounded-full overflow-hidden">
+        <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
         </div>
-        <span className="text-xs text-gray-400 w-8 text-right">{pct}</span>
+        <span className="text-xs text-slate-500 w-8 text-right font-mono">{pct}</span>
       </div>
     );
   }
 
   // ── Status badge ─────────────────────────────────────────────────────────
   function StatusBadge({ status, goodValues }: { status?: string; goodValues?: string[] }) {
-    if (!status) return <span className="text-gray-600 text-xs">—</span>;
+    if (!status) return <span className="text-slate-400 text-xs">—</span>;
     const isGood = goodValues ? goodValues.includes(status) : (status === "NORMAL" || status === "CONSISTENT" || status === "GOOD");
     const color = isGood ? "text-genuine" : "text-suspicious";
-    return <span className={`text-xs font-medium ${color}`}>{status.replace(/_/g, " ")}</span>;
+    return <span className={`text-xs font-semibold ${color}`}>{status.replace(/_/g, " ")}</span>;
   }
 
   const iq = detail.image_quality;
@@ -1236,56 +1236,56 @@ function TamperingDetailPanel({
   const anomalousFindings = findings.filter(f => f.status !== "NORMAL" && f.status !== "CONSISTENT" && f.status !== "NOT_FOUND");
 
   return (
-    <div className="mt-4 glass-panel rounded-xl border border-surface-border overflow-hidden">
+    <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header — always visible */}
       <button
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition"
         onClick={() => setExpanded(e => !e)}
         id="tampering-detail-toggle"
       >
         <div className="flex items-center gap-3">
-          <ShieldAlert size={15} className="text-brand-500 shrink-0" />
-          <span className="text-sm font-semibold text-white">Tampering Analysis Detail</span>
+          <ShieldAlert size={15} className="text-primary shrink-0" />
+          <span className="text-sm font-semibold text-slate-900">Tampering Analysis Detail</span>
           {rc && riskLevel && (
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${rc.color} ${rc.bg}`}>
               {riskLevel.replace(/_/g, " ")}
             </span>
           )}
           {score != null && (
-            <span className="text-xs text-gray-400">Score: {Math.round(score)}/100</span>
+            <span className="text-xs text-slate-500 font-mono">Score: {Math.round(score)}/100</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {confidence != null && (
-            <span className="text-xs text-gray-500">Confidence: {Math.round(confidence)}%</span>
+            <span className="text-xs text-slate-400 font-mono">Confidence: {Math.round(confidence)}%</span>
           )}
-          <span className="text-xs text-brand-500">{expanded ? "▲ Hide" : "▼ Show signals"}</span>
+          <span className="text-xs text-primary font-medium">{expanded ? "▲ Hide" : "▼ Show signals"}</span>
         </div>
       </button>
 
       {expanded && (
-        <div className="px-5 pb-5 border-t border-surface-border">
+        <div className="px-5 pb-5 border-t border-slate-200">
 
           {/* 3-column signal grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
 
             {/* Image Quality */}
             {iq && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <Activity size={11} className="text-brand-500" /> Image Quality
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <Activity size={11} className="text-primary" /> Image Quality
                 </p>
                 <ScoreBar value={iq.score} />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   <StatusBadge status={iq.status} goodValues={["GOOD"]} />
-                  {iq.detail && <span className="ml-1 text-gray-600">— {iq.detail}</span>}
+                  {iq.detail && <span className="ml-1 text-slate-600">— {iq.detail}</span>}
                 </p>
                 {iq.breakdown && (
                   <div className="mt-2 space-y-1">
                     {Object.entries(iq.breakdown).map(([k, v]) => (
                       <div key={k} className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 capitalize">{k}</span>
-                        <span className="text-xs text-gray-400">{Math.round(v as number)}</span>
+                        <span className="text-xs text-slate-500 capitalize">{k}</span>
+                        <span className="text-xs text-slate-700 font-mono">{Math.round(v as number)}</span>
                       </div>
                     ))}
                   </div>
@@ -1295,20 +1295,20 @@ function TamperingDetailPanel({
 
             {/* ELA */}
             {ela && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <Gauge size={11} className="text-brand-500" /> ELA Compression
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <Gauge size={11} className="text-primary" /> ELA Compression
                 </p>
                 <ScoreBar value={ela.risk} invert />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   <StatusBadge status={ela.status} goodValues={["NORMAL"]} />
-                  <span className="ml-1 text-gray-600">raw: {ela.score?.toFixed(1)}</span>
+                  <span className="ml-1 text-slate-600 font-mono">raw: {ela.score?.toFixed(1)}</span>
                 </p>
                 {hasHeatmap && (
                   <a
                     href={verificationApi.elaHeatmapUrl(certId)}
                     target="_blank" rel="noreferrer"
-                    className="text-xs text-brand-500 hover:underline mt-1 inline-block"
+                    className="text-xs text-primary hover:underline mt-1 inline-block"
                   >View ELA heatmap ↗</a>
                 )}
               </div>
@@ -1316,15 +1316,15 @@ function TamperingDetailPanel({
 
             {/* Copy-Paste */}
             {cp && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <Copy size={11} className="text-brand-500" /> Copy-Paste
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <Copy size={11} className="text-primary" /> Copy-Paste
                 </p>
                 <ScoreBar value={cp.score} invert />
                 <p className="text-xs mt-1">
                   {cp.detected
-                    ? <span className="text-fake">Detected ({cp.cluster_size} keypoint pairs)</span>
-                    : <span className="text-genuine">None detected (cluster: {cp.cluster_size})</span>
+                    ? <span className="text-fake font-semibold">Detected ({cp.cluster_size} keypoint pairs)</span>
+                    : <span className="text-genuine font-semibold">None detected (cluster: {cp.cluster_size})</span>
                   }
                 </p>
               </div>
@@ -1332,12 +1332,12 @@ function TamperingDetailPanel({
 
             {/* Font Consistency */}
             {font && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <FileText size={11} className="text-brand-500" /> Font Consistency
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <FileText size={11} className="text-primary" /> Font Consistency
                 </p>
                 <ScoreBar value={font.score} />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   <StatusBadge status={font.status} goodValues={["CONSISTENT"]} />
                 </p>
               </div>
@@ -1345,17 +1345,17 @@ function TamperingDetailPanel({
 
             {/* Text Analysis (PART E — NEW) */}
             {ta && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <ListChecks size={11} className="text-brand-500" /> Text Layout
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <ListChecks size={11} className="text-primary" /> Text Layout
                 </p>
                 <ScoreBar value={ta.score} />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   <StatusBadge status={ta.status} goodValues={["NORMAL"]} />
-                  {ta.detail && <span className="ml-1 text-gray-600">— {ta.detail}</span>}
+                  {ta.detail && <span className="ml-1 text-slate-600">— {ta.detail}</span>}
                 </p>
                 {(ta.line_count != null || ta.spacing_cv != null) && (
-                  <div className="mt-1 text-xs text-gray-600 space-y-0.5">
+                  <div className="mt-1 text-xs text-slate-500 space-y-0.5 font-mono">
                     {ta.line_count != null && <p>Lines: {ta.line_count}</p>}
                     {ta.spacing_cv != null && <p>Spacing CV: {ta.spacing_cv.toFixed(3)}</p>}
                     {ta.density_cv != null && <p>Density CV: {ta.density_cv.toFixed(3)}</p>}
@@ -1366,45 +1366,45 @@ function TamperingDetailPanel({
 
             {/* Signature */}
             {sig && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <Pencil size={11} className="text-brand-500" /> Signature
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <Pencil size={11} className="text-primary" /> Signature
                 </p>
-                <p className="text-xs text-gray-400 mb-1">
+                <p className="text-xs text-slate-600 mb-1">
                   {sig.detected ? "Detected" : "Not found"}
                 </p>
                 {sig.detected && (
                   <ScoreBar value={sig.anomaly_score} invert />
                 )}
                 {sig.reason && (
-                  <p className="text-xs text-gray-600 mt-1">{sig.reason}</p>
+                  <p className="text-xs text-slate-500 mt-1">{sig.reason}</p>
                 )}
               </div>
             )}
 
             {/* Seal */}
             {seal && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <ShieldCheck size={11} className="text-brand-500" /> Seal / Stamp
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <ShieldCheck size={11} className="text-primary" /> Seal / Stamp
                 </p>
-                <p className="text-xs text-gray-400 mb-1">
+                <p className="text-xs text-slate-600 mb-1">
                   {seal.detected ? "Detected" : "Not found"}
                 </p>
                 {seal.detected && (
                   <ScoreBar value={seal.anomaly_score} invert />
                 )}
                 {seal.reason && (
-                  <p className="text-xs text-gray-600 mt-1">{seal.reason}</p>
+                  <p className="text-xs text-slate-500 mt-1">{seal.reason}</p>
                 )}
               </div>
             )}
 
             {/* Metadata */}
             {meta && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <Download size={11} className="text-brand-500" /> Metadata
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <Download size={11} className="text-primary" /> Metadata
                 </p>
                 <StatusBadge status={meta.status} goodValues={["NORMAL"]} />
                 {meta.anomalies && meta.anomalies.length > 0 && (
@@ -1421,9 +1421,9 @@ function TamperingDetailPanel({
 
             {/* Document Structure */}
             {struct && (
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-                  <ListChecks size={11} className="text-brand-500" /> Doc Structure
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <ListChecks size={11} className="text-primary" /> Doc Structure
                 </p>
                 <ScoreBar value={struct.anomaly_score} invert />
                 {struct.missing_fields && struct.missing_fields.length > 0 && (
@@ -1432,7 +1432,7 @@ function TamperingDetailPanel({
                   </p>
                 )}
                 {struct.reason && (
-                  <p className="text-xs text-gray-600 mt-0.5">{struct.reason}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{struct.reason}</p>
                 )}
               </div>
             )}
@@ -1441,20 +1441,20 @@ function TamperingDetailPanel({
           {/* Anomalous findings list */}
           {anomalousFindings.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
                 <AlertTriangle size={11} className="text-suspicious" /> Anomaly Findings
               </p>
               <ul className="space-y-2">
                 {anomalousFindings.map((f, i) => (
-                  <li key={i} className="text-xs glass-panel rounded-lg px-3 py-2 border border-surface-border">
+                  <li key={i} className="text-xs bg-slate-50 rounded-lg px-3 py-2 border border-slate-200 shadow-xs">
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-white font-medium capitalize">{f.type.replace(/_/g, " ")}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500">score {Math.round(f.score)}</span>
-                        <span className="text-gray-600">conf {Math.round(f.confidence)}%</span>
+                      <span className="text-slate-900 font-semibold capitalize">{f.type.replace(/_/g, " ")}</span>
+                      <div className="flex items-center gap-2 font-mono">
+                        <span className="text-slate-500">score {Math.round(f.score)}</span>
+                        <span className="text-slate-400">conf {Math.round(f.confidence)}%</span>
                       </div>
                     </div>
-                    <p className="text-gray-500">{f.reason}</p>
+                    <p className="text-slate-600">{f.reason}</p>
                   </li>
                 ))}
               </ul>
@@ -1462,7 +1462,7 @@ function TamperingDetailPanel({
           )}
 
           {/* Decision rules reminder */}
-          <p className="text-xs text-gray-700 mt-4 italic">
+          <p className="text-xs text-slate-400 mt-4 italic">
             Note: No single anomaly automatically classifies a document as fake.
             Multiple strong signals are required for a HIGH RISK determination.
           </p>
@@ -1501,19 +1501,19 @@ function DuplicateDetailPanel({
     const color = value >= 80 ? "bg-fake" : value >= 50 ? "bg-suspicious" : "bg-genuine";
     return (
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-1.5 bg-surface-border rounded-full overflow-hidden">
+        <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
         </div>
-        <span className="text-xs text-gray-400 w-10 text-right">{value.toFixed(0)}%</span>
+        <span className="text-xs text-slate-500 w-10 text-right font-mono">{value.toFixed(0)}%</span>
       </div>
     );
   }
 
   function SignalFlag({ active, label }: { active: boolean; label: string }) {
     return (
-      <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border ${active
-          ? "border-suspicious/30 bg-suspicious/10 text-suspicious"
-          : "border-surface-border bg-white/3 text-gray-600"
+      <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border font-medium ${active
+          ? "border-amber-200 bg-amber-50 text-amber-700 font-semibold"
+          : "border-slate-200 bg-slate-50 text-slate-500"
         }`}>
         <span>{active ? "⚠" : "✓"}</span>
         <span>{label}</span>
@@ -1522,53 +1522,53 @@ function DuplicateDetailPanel({
   }
 
   return (
-    <div className="mt-4 glass-panel rounded-xl border border-surface-border overflow-hidden">
+    <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header */}
       <button
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition"
         onClick={() => setExpanded(e => !e)}
         id="duplicate-detail-toggle"
       >
         <div className="flex items-center gap-3">
-          <Copy size={15} className="text-brand-500 shrink-0" />
-          <span className="text-sm font-semibold text-white">Duplicate Detection Detail</span>
+          <Copy size={15} className="text-primary shrink-0" />
+          <span className="text-sm font-semibold text-slate-900">Duplicate Detection Detail</span>
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${cfg.color} ${cfg.bg}`}>
             {cfg.icon} {cfg.label}
           </span>
           {detail.duplicate_detected && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-slate-500 font-mono">
               Confidence: {detail.confidence.toFixed(0)}%
             </span>
           )}
         </div>
-        <span className="text-xs text-brand-500">{expanded ? "▲ Hide" : "▼ Show detail"}</span>
+        <span className="text-xs text-primary font-medium">{expanded ? "▲ Hide" : "▼ Show detail"}</span>
       </button>
 
       {expanded && (
-        <div className="px-5 pb-5 border-t border-surface-border">
+        <div className="px-5 pb-5 border-t border-slate-200">
           {/* Confidence */}
           {detail.duplicate_detected && (
             <div className="mt-4">
-              <p className="text-xs text-gray-500 mb-1">Match Confidence</p>
+              <p className="text-xs text-slate-500 mb-1">Match Confidence</p>
               <ConfidenceBar value={detail.confidence} />
             </div>
           )}
 
           {/* Signal flags grid */}
           <div className="mt-4">
-            <p className="text-xs font-semibold text-gray-400 mb-2">Detection Signals</p>
+            <p className="text-xs font-semibold text-slate-700 mb-2">Detection Signals</p>
             <div className="flex flex-wrap gap-2">
               <SignalFlag active={detail.file_hash_match} label="File Hash" />
               <SignalFlag active={detail.certificate_number_match} label="Cert Number" />
               <SignalFlag active={detail.registration_number_match} label="Reg/Roll Number" />
               <SignalFlag active={detail.qr_match} label="QR Payload" />
               {detail.field_similarity > 0 && (
-                <div className="text-xs px-2 py-1 rounded-md border border-surface-border bg-white/3 text-gray-400">
+                <div className="text-xs px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 text-slate-600 font-mono">
                   Field Similarity: {detail.field_similarity.toFixed(0)}%
                 </div>
               )}
               {detail.visual_similarity > 0 && (
-                <div className="text-xs px-2 py-1 rounded-md border border-surface-border bg-white/3 text-gray-400">
+                <div className="text-xs px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 text-slate-600 font-mono">
                   Visual Similarity: {detail.visual_similarity.toFixed(0)}%
                 </div>
               )}
@@ -1578,16 +1578,16 @@ function DuplicateDetailPanel({
           {/* Field similarity bars */}
           {(detail.field_similarity > 0 || detail.visual_similarity > 0) && (
             <div className="mt-4 space-y-2">
-              <p className="text-xs font-semibold text-gray-400 mb-2">Similarity Analysis</p>
+              <p className="text-xs font-semibold text-slate-700 mb-2">Similarity Analysis</p>
               {detail.field_similarity > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Fuzzy Field Similarity</p>
+                  <p className="text-xs text-slate-500 mb-1">Fuzzy Field Similarity</p>
                   <ConfidenceBar value={detail.field_similarity} />
                 </div>
               )}
               {detail.visual_similarity > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Visual Similarity (dHash)</p>
+                  <p className="text-xs text-slate-500 mb-1">Visual Similarity (dHash)</p>
                   <ConfidenceBar value={detail.visual_similarity} />
                 </div>
               )}
@@ -1597,12 +1597,12 @@ function DuplicateDetailPanel({
           {/* Matched fields */}
           {detail.matched_fields.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5">
-                <CircleCheck size={11} className="text-suspicious" /> Matched Fields
+              <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                <CircleCheck size={11} className="text-amber-600" /> Matched Fields
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {detail.matched_fields.map(f => (
-                  <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-suspicious/10 text-suspicious border border-suspicious/20">
+                  <span key={f} className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
                     {f.replace(/_/g, " ")}
                   </span>
                 ))}
@@ -1613,12 +1613,12 @@ function DuplicateDetailPanel({
           {/* Conflicting fields */}
           {detail.conflicting_fields.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5">
-                <CircleX size={11} className="text-fake" /> Conflicting Fields
+              <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                <CircleX size={11} className="text-rose-600" /> Conflicting Fields
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {detail.conflicting_fields.map(f => (
-                  <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-fake/10 text-fake border border-fake/20">
+                  <span key={f} className="text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-medium">
                     {f.replace(/_/g, " ")}
                   </span>
                 ))}
@@ -1628,8 +1628,8 @@ function DuplicateDetailPanel({
 
           {/* Same owner indicator */}
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs text-gray-500">Same Account Re-upload:</span>
-            <span className={`text-xs font-medium ${detail.same_owner ? "text-genuine" : "text-gray-400"}`}>
+            <span className="text-xs text-slate-500">Same Account Re-upload:</span>
+            <span className={`text-xs font-semibold ${detail.same_owner ? "text-genuine" : "text-slate-500"}`}>
               {detail.same_owner ? "Yes — benign re-upload" : "No / Unknown"}
             </span>
           </div>
@@ -1637,11 +1637,11 @@ function DuplicateDetailPanel({
           {/* Matched certificate link */}
           {detail.matched_certificate_id && (
             <div className="mt-3">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-500">
                 Matched Certificate:{" "}
                 <a
                   href={`/dashboard/certificates/${detail.matched_certificate_id}`}
-                  className="text-brand-500 hover:underline font-mono"
+                  className="text-primary hover:underline font-mono font-medium"
                 >
                   {detail.matched_certificate_id.slice(0, 16)}…
                 </a>
@@ -1650,15 +1650,15 @@ function DuplicateDetailPanel({
           )}
 
           {/* Reason */}
-          <div className="mt-4 bg-white/3 rounded-lg px-3 py-2 border border-surface-border">
-            <p className="text-xs text-gray-500 italic">{detail.reason}</p>
+          <div className="mt-4 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
+            <p className="text-xs text-slate-600 italic">{detail.reason}</p>
           </div>
 
           {/* Conflict warning */}
           {isConflict && (
-            <div className="mt-3 bg-fake/5 border border-fake/20 rounded-lg px-3 py-2 flex items-start gap-2">
-              <AlertTriangle size={13} className="text-fake mt-0.5 shrink-0" />
-              <p className="text-xs text-fake">
+            <div className="mt-3 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 flex items-start gap-2">
+              <AlertTriangle size={13} className="text-rose-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-rose-700">
                 Certificate number matches an existing record but identity fields conflict.
                 This is treated as strong suspicious evidence in the fraud analysis.
               </p>
@@ -1667,13 +1667,13 @@ function DuplicateDetailPanel({
 
           {/* Clean indicator */}
           {isClean && (
-            <div className="mt-3 bg-genuine/5 border border-genuine/20 rounded-lg px-3 py-2 flex items-center gap-2">
-              <CircleCheck size={13} className="text-genuine" />
-              <p className="text-xs text-genuine">No duplicate or conflicting certificate found in the system.</p>
+            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2">
+              <CircleCheck size={13} className="text-emerald-600" />
+              <p className="text-xs text-emerald-700 font-medium">No duplicate or conflicting certificate found in the system.</p>
             </div>
           )}
 
-          <p className="text-xs text-gray-700 mt-4 italic">
+          <p className="text-xs text-slate-400 mt-4 italic">
             Note: Duplicate detection considers file hash, certificate number, registration number,
             QR data, fuzzy field similarity, and visual appearance (dHash).
           </p>
@@ -1707,40 +1707,40 @@ function VerificationPipelinePanel({ certificateId }: { certificateId: string })
   }
 
   const STATUS_CHIP: Record<string, { label: string; cls: string }> = {
-    COMPLETED: { label: "✓ Completed", cls: "bg-genuine/10 text-genuine border-genuine/20" },
-    PENDING: { label: "· Pending", cls: "bg-surface-border text-gray-500 border-surface-border" },
-    FAILED: { label: "✗ Failed", cls: "bg-fake/10 text-fake border-fake/20" },
-    UNAVAILABLE: { label: "— N/A", cls: "bg-white/3 text-gray-700 border-surface-border" },
+    COMPLETED: { label: "✓ Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    PENDING: { label: "· Pending", cls: "bg-slate-100 text-slate-500 border-slate-200" },
+    FAILED: { label: "✗ Failed", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+    UNAVAILABLE: { label: "— N/A", cls: "bg-slate-50 text-slate-400 border-slate-200" },
   };
 
   return (
-    <div className="mb-4 glass-panel rounded-xl border border-surface-border overflow-hidden">
+    <div className="mb-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header toggle */}
       <button
-        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-white/5 transition"
+        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-slate-50 transition"
         onClick={loadPipeline}
         id="pipeline-status-toggle"
       >
         <div className="flex items-center gap-2">
-          <ListChecks size={14} className="text-brand-500 shrink-0" />
-          <span className="text-sm font-semibold text-white">Verification Pipeline Status</span>
+          <ListChecks size={14} className="text-primary shrink-0" />
+          <span className="text-sm font-semibold text-slate-900">Verification Pipeline Status</span>
           {pipeline && (
-            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ml-1 ${pipeline.overall_status === "FULLY_COMPLETE" ? "text-genuine bg-genuine/10 border-genuine/20"
-                : pipeline.overall_status === "NOT_STARTED" ? "text-gray-500 bg-white/3 border-surface-border"
-                  : "text-suspicious bg-suspicious/10 border-suspicious/20"
+            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ml-1 ${pipeline.overall_status === "FULLY_COMPLETE" ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                : pipeline.overall_status === "NOT_STARTED" ? "text-slate-500 bg-slate-50 border-slate-200"
+                  : "text-amber-700 bg-amber-50 border-amber-200"
               }`}>
               {pipeline.completion_pct.toFixed(0)}% complete
             </span>
           )}
         </div>
-        <span className="text-xs text-brand-500">{expanded ? "▲ Hide" : "▼ Show stages"}</span>
+        <span className="text-xs text-primary font-medium">{expanded ? "▲ Hide" : "▼ Show stages"}</span>
       </button>
 
       {expanded && (
-        <div className="border-t border-surface-border px-5 pb-5">
+        <div className="border-t border-slate-200 px-5 pb-5">
           {loading && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 mt-4">
-              <Loader2 size={12} className="animate-spin" /> Loading pipeline…
+            <div className="flex items-center gap-2 text-xs text-slate-500 mt-4">
+              <Loader2 size={12} className="animate-spin text-primary" /> Loading pipeline…
             </div>
           )}
           {fetchError && (
@@ -1750,13 +1750,13 @@ function VerificationPipelinePanel({ certificateId }: { certificateId: string })
             <>
               {/* Progress bar */}
               <div className="mt-4 mb-5">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <div className="flex justify-between text-xs text-slate-500 mb-1 font-mono">
                   <span>{pipeline.overall_status.replace(/_/g, " ")}</span>
                   <span>{pipeline.completion_pct.toFixed(0)}%</span>
                 </div>
-                <div className="h-1.5 bg-surface-border rounded-full overflow-hidden">
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-brand-600 to-genuine transition-all"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-500 transition-all"
                     style={{ width: `${pipeline.completion_pct}%` }}
                   />
                 </div>
@@ -1765,7 +1765,7 @@ function VerificationPipelinePanel({ certificateId }: { certificateId: string })
               {/* Stage rows */}
               <div className="relative">
                 {/* Vertical connector line */}
-                <div className="absolute left-3 top-3 bottom-3 w-px bg-surface-border" />
+                <div className="absolute left-3 top-3 bottom-3 w-px bg-slate-200" />
 
                 <div className="space-y-3">
                   {pipeline.stages.map((stage: PipelineStage) => {
@@ -1774,25 +1774,25 @@ function VerificationPipelinePanel({ certificateId }: { certificateId: string })
                     return (
                       <div key={stage.stage} className="flex items-start gap-3 pl-2">
                         {/* Timeline dot */}
-                        <div className={`mt-1 w-4 h-4 rounded-full flex items-center justify-center shrink-0 z-10 border ${isCompleted ? "bg-genuine/20 border-genuine/40"
-                            : stage.status === "UNAVAILABLE" ? "bg-white/3 border-surface-border"
-                              : "bg-surface-border border-gray-600"
+                        <div className={`mt-1 w-4 h-4 rounded-full flex items-center justify-center shrink-0 z-10 border ${isCompleted ? "bg-emerald-50 border-emerald-500"
+                            : stage.status === "UNAVAILABLE" ? "bg-slate-50 border-slate-200"
+                              : "bg-slate-100 border-slate-300"
                           }`}>
-                          {isCompleted && <Check size={9} className="text-genuine" />}
+                          {isCompleted && <Check size={9} className="text-emerald-700" />}
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-medium text-white">{stage.label}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded border ${chip.cls}`}>
+                            <span className="text-xs font-semibold text-slate-900">{stage.label}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded border font-mono ${chip.cls}`}>
                               {chip.label}
                             </span>
                           </div>
                           {stage.summary && (
-                            <p className="text-xs text-gray-500 mt-0.5 truncate">{stage.summary}</p>
+                            <p className="text-xs text-slate-500 mt-0.5 truncate">{stage.summary}</p>
                           )}
                           {stage.completed_at && (
-                            <p className="text-xs text-gray-700 mt-0.5">
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
                               {new Date(stage.completed_at).toLocaleString("en-IN", {
                                 day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
                               })}
@@ -1838,8 +1838,8 @@ function DocumentValidationPanel({
 
   if (loading && !validation) {
     return (
-      <div className="glass-panel rounded-xl p-4 mt-6 text-xs text-gray-500 flex items-center gap-2">
-        <Loader2 size={14} className="animate-spin text-brand-500" /> Validating extracted fields against document schema...
+      <div className="bg-white rounded-xl p-4 mt-6 text-xs text-slate-500 border border-slate-200 flex items-center gap-2">
+        <Loader2 size={14} className="animate-spin text-primary" /> Validating extracted fields against document schema...
       </div>
     );
   }
@@ -1847,12 +1847,12 @@ function DocumentValidationPanel({
   if (!validation) return null;
 
   const statusBadges: Record<string, { label: string; cls: string }> = {
-    VALID: { label: "✓ VALID", cls: "bg-genuine/10 text-genuine border-genuine/30" },
-    INVALID: { label: "✗ INVALID", cls: "bg-fake/10 text-fake border-fake/30" },
-    LOW_CONFIDENCE: { label: "⚠ REVIEW", cls: "bg-suspicious/10 text-suspicious border-suspicious/30" },
-    MISSING: { label: "— MISSING", cls: "bg-surface-panel text-gray-400 border-surface-border" },
-    NOT_DETECTED: { label: "— NOT DETECTED", cls: "bg-surface-panel text-gray-500 border-surface-border" },
-    NOT_APPLICABLE: { label: "— N/A", cls: "bg-surface-panel text-gray-500 border-surface-border" },
+    VALID: { label: "✓ VALID", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    INVALID: { label: "✗ INVALID", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+    LOW_CONFIDENCE: { label: "⚠ REVIEW", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+    MISSING: { label: "— MISSING", cls: "bg-slate-50 text-slate-500 border-slate-200" },
+    NOT_DETECTED: { label: "— NOT DETECTED", cls: "bg-slate-50 text-slate-400 border-slate-200" },
+    NOT_APPLICABLE: { label: "— N/A", cls: "bg-slate-50 text-slate-400 border-slate-200" },
   };
 
   const formattedType = validation.document_type
@@ -1861,36 +1861,36 @@ function DocumentValidationPanel({
     .join(" ");
 
   return (
-    <div className="mt-6 glass-panel rounded-xl p-5 border border-surface-border">
+    <div className="mt-6 bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium text-gray-400">Document Type:</span>
-            <span className="text-sm font-bold text-white">{formattedType}</span>
-            <span className="text-xs rounded-full px-2.5 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 font-medium">
+            <span className="text-xs font-medium text-slate-500">Document Type:</span>
+            <span className="text-sm font-bold text-slate-900">{formattedType}</span>
+            <span className="text-xs rounded-full px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">
               {Math.round(validation.classification_confidence * 100)}% Confidence
             </span>
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-slate-500">
             Field validation schema for {formattedType}
           </p>
         </div>
       </div>
 
       <div className="mb-4">
-        <p className="text-xs font-medium text-gray-400 mb-2">Expected Schema Fields:</p>
+        <p className="text-xs font-medium text-slate-700 mb-2">Expected Schema Fields:</p>
         <div className="flex flex-wrap gap-1.5">
           {validation.expected_fields.map((f, i) => (
-            <span key={i} className="text-xs px-2 py-0.5 rounded bg-surface-panel text-gray-300 border border-surface-border">
+            <span key={i} className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
               {f}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-surface-border">
+      <div className="overflow-hidden rounded-lg border border-slate-200">
         <table className="w-full text-xs">
-          <thead className="bg-surface-panel text-gray-400 text-left font-medium">
+          <thead className="bg-slate-50 text-slate-600 text-left font-medium border-b border-slate-200">
             <tr>
               <th className="px-3.5 py-2 font-medium">Field</th>
               <th className="px-3.5 py-2 font-medium">Extracted Value</th>
@@ -1898,13 +1898,13 @@ function DocumentValidationPanel({
               <th className="px-3.5 py-2 font-medium w-28">Validation Status</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {validation.field_validations.map((item) => {
               const badge = statusBadges[item.status] || statusBadges.MISSING;
               return (
-                <tr key={item.field} className="border-t border-surface-border">
-                  <td className="px-3.5 py-2 text-gray-300 font-medium">{item.label}</td>
-                  <td className="px-3.5 py-2 text-white font-mono">{item.extracted_value || "—"}</td>
+                <tr key={item.field} className="hover:bg-slate-50/50">
+                  <td className="px-3.5 py-2 text-slate-700 font-medium">{item.label}</td>
+                  <td className="px-3.5 py-2 text-slate-900 font-mono">{item.extracted_value || "—"}</td>
                   <td className="px-3.5 py-2">
                     <ConfidenceBadge value={item.confidence} />
                   </td>
@@ -1931,15 +1931,15 @@ function DocumentComparisonSection({ cert }: { cert: CertificateResponse | null 
 
   if (!cert.group_id) {
     return (
-      <div className="mt-6 glass-panel rounded-xl p-4 border border-surface-border flex items-center justify-between">
+      <div className="mt-6 bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ListChecks size={16} className="text-gray-500" />
+          <ListChecks size={16} className="text-slate-400" />
           <div>
-            <p className="text-xs font-semibold text-gray-300">Document Comparison</p>
-            <p className="text-xs text-gray-500">Unavailable / Not applicable (Single document uploaded)</p>
+            <p className="text-xs font-semibold text-slate-700">Document Comparison</p>
+            <p className="text-xs text-slate-500">Unavailable / Not applicable (Single document uploaded)</p>
           </div>
         </div>
-        <span className="text-xs px-2.5 py-0.5 rounded-full bg-surface-panel text-gray-500 border border-surface-border font-medium">
+        <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 font-medium">
           Single Doc
         </span>
       </div>
@@ -1947,19 +1947,19 @@ function DocumentComparisonSection({ cert }: { cert: CertificateResponse | null 
   }
 
   return (
-    <div className="mt-6 glass-panel rounded-xl p-4 border border-surface-border flex items-center justify-between">
+    <div className="mt-6 bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <ListChecks size={16} className="text-brand-500" />
+        <ListChecks size={16} className="text-indigo-600" />
         <div>
-          <p className="text-xs font-semibold text-white">Multi-Document Group Active</p>
-          <p className="text-xs text-gray-400">
-            Group ID: <span className="font-mono">{cert.group_id.slice(0, 16)}…</span>
+          <p className="text-xs font-semibold text-slate-900">Multi-Document Group Active</p>
+          <p className="text-xs text-slate-500">
+            Group ID: <span className="font-mono text-slate-700">{cert.group_id.slice(0, 16)}…</span>
           </p>
         </div>
       </div>
       <a
         href={`/dashboard/compare?group_id=${cert.group_id}`}
-        className="text-xs text-brand-500 hover:underline font-medium"
+        className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline font-medium"
       >
         View Full Document Comparison ↗
       </a>
