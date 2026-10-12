@@ -52,6 +52,7 @@ export const ForensicSignalsGrid: React.FC<ForensicSignalsGridProps> = ({
   // 3. Tampering
   const tamperingScore = verification?.tampering_score;
   const tamperingDetail = verification?.tampering_detail;
+  const tamperingStatus = verification?.tampering_status;
 
   // 4. Duplicate
   const isDuplicate = verification?.is_duplicate;
@@ -190,7 +191,11 @@ export const ForensicSignalsGrid: React.FC<ForensicSignalsGridProps> = ({
               </span>
               <span
                 className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
-                  tamperingScore === undefined
+                  tamperingStatus === "not_applicable_for_pdf_text_layer"
+                    ? "text-amber-700 border-amber-200 bg-amber-50"
+                    : tamperingStatus?.startsWith("failed:")
+                    ? "text-red-700 border-red-200 bg-red-50"
+                    : tamperingScore === undefined || tamperingScore === null
                     ? "text-slate-600 border-slate-200 bg-slate-50"
                     : tamperingScore < 30
                     ? "text-emerald-700 border-emerald-200 bg-emerald-50"
@@ -199,14 +204,32 @@ export const ForensicSignalsGrid: React.FC<ForensicSignalsGridProps> = ({
                     : "text-red-700 border-red-200 bg-red-50"
                 }`}
               >
-                {tamperingScore !== undefined
+                {tamperingStatus === "not_applicable_for_pdf_text_layer"
+                  ? "NOT APPLICABLE"
+                  : tamperingStatus?.startsWith("failed:")
+                  ? "FAILED"
+                  : tamperingStatus?.startsWith("skipped:")
+                  ? "SKIPPED"
+                  : tamperingScore !== undefined && tamperingScore !== null
                   ? `${Math.round(tamperingScore)} / 100`
                   : "PENDING"}
               </span>
             </div>
 
             <div className="text-xs text-slate-600 space-y-1">
-              {tamperingScore === undefined ? (
+              {tamperingStatus === "not_applicable_for_pdf_text_layer" ? (
+                <p className="text-amber-700 font-medium">
+                  Not applicable for digital PDF text layer (vector document).
+                </p>
+              ) : tamperingStatus?.startsWith("failed:") ? (
+                <p className="text-red-700 font-medium">
+                  Scan error: {tamperingStatus.replace(/^failed:\s*/, "")}
+                </p>
+              ) : tamperingStatus?.startsWith("skipped:") ? (
+                <p className="text-slate-500">
+                  Skipped: {tamperingStatus.replace(/^skipped:\s*/, "")}
+                </p>
+              ) : tamperingScore === undefined || tamperingScore === null ? (
                 <p className="text-slate-400">ELA, clone, and font anomaly inspection.</p>
               ) : (
                 <div>
@@ -220,10 +243,10 @@ export const ForensicSignalsGrid: React.FC<ForensicSignalsGridProps> = ({
                     }
                   >
                     {tamperingScore < 30
-                      ? "Low tampering risk detected."
+                      ? "Low tampering risk detected (analyzed)."
                       : tamperingScore < 60
-                      ? "Minor visual anomalies detected."
-                      : "High probability of image manipulation."}
+                      ? "Minor visual anomalies detected (analyzed)."
+                      : "High probability of image manipulation (analyzed)."}
                   </p>
                   {tamperingDetail && (
                     <button

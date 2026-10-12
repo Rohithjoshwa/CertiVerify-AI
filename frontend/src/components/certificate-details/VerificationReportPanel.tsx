@@ -105,6 +105,16 @@ export const VerificationReportPanel: React.FC<VerificationReportPanelProps> = (
           icon: AlertTriangle,
           label: "SUSPICIOUS / IRREGULAR",
         };
+      case "inconclusive":
+      case "inconclusive / needs review":
+        return {
+          variant: "inconclusive" as const,
+          bg: "bg-amber-50",
+          border: "border-amber-300",
+          text: "text-amber-800",
+          icon: AlertTriangle,
+          label: "NEEDS REVIEW",
+        };
       case "fake":
         return {
           variant: "fake" as const,
@@ -333,6 +343,25 @@ export const VerificationReportPanel: React.FC<VerificationReportPanelProps> = (
                 <p className="text-xs text-slate-600 leading-relaxed max-w-xl">
                   {prediction?.explanation || "Algorithmic decision compiled from multi-vector verification, forensic texture analysis, and cryptographic record check."}
                 </p>
+                {(() => {
+                  const partial = (prediction?.evidence?._partial_verification as any) || (prediction?.evidence_breakdown?._partial_verification as any);
+                  if (!partial && verdict !== "inconclusive" && !verdict.includes("inconclusive")) return null;
+                  return (
+                    <div className="pt-1.5 space-y-1">
+                      {partial?.note && (
+                        <span className="inline-block bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono border border-amber-300">
+                          {partial.note}
+                        </span>
+                      )}
+                      {partial?.missing_checks && partial.missing_checks.length > 0 && (
+                        <p className="text-[11px] text-amber-900 font-mono">
+                          <span className="font-semibold font-sans">Missing checks: </span>
+                          {partial.missing_checks.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -415,15 +444,37 @@ export const VerificationReportPanel: React.FC<VerificationReportPanelProps> = (
                     <ShieldAlert size={13} className="text-amber-600" />
                     ELA Tamper Scan
                   </span>
-                  <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded ${
-                    verification?.evidence?.tampering?.status === "CLEAN" || verification?.evidence?.tampering?.status === "PASS"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : verification?.evidence?.tampering?.status === "TAMPERED" || verification?.evidence?.tampering?.status === "FAIL"
-                      ? "bg-rose-50 text-rose-700 border border-rose-200"
-                      : "bg-slate-100 text-slate-600 border border-slate-200"
-                  }`}>
-                    {verification?.evidence?.tampering?.status || (verification?.verification_summary?.tampering_checked ? "CHECKED" : "UNAVAILABLE")}
-                  </span>
+                  {(() => {
+                    const rawTStatus = verification?.tampering_status || verification?.evidence?.tampering?.status;
+                    let display = "PENDING";
+                    let badgeClass = "bg-slate-100 text-slate-600 border border-slate-200";
+
+                    if (rawTStatus === "CLEAN" || rawTStatus === "PASS" || rawTStatus === "analyzed") {
+                      display = verification?.tampering_score != null ? `ANALYZED (${Math.round(verification.tampering_score)}/100)` : "ANALYZED";
+                      badgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+                    } else if (rawTStatus === "not_applicable_for_pdf_text_layer") {
+                      display = "NOT APPLICABLE";
+                      badgeClass = "bg-amber-50 text-amber-700 border border-amber-200";
+                    } else if (rawTStatus?.startsWith("failed:")) {
+                      display = "FAILED";
+                      badgeClass = "bg-rose-50 text-rose-700 border border-rose-200";
+                    } else if (rawTStatus?.startsWith("skipped:")) {
+                      display = "SKIPPED";
+                      badgeClass = "bg-slate-100 text-slate-600 border border-slate-200";
+                    } else if (rawTStatus === "TAMPERED" || rawTStatus === "FAIL") {
+                      display = `TAMPER DETECTED (${verification?.tampering_score != null ? Math.round(verification.tampering_score) : 0}/100)`;
+                      badgeClass = "bg-rose-50 text-rose-700 border border-rose-200";
+                    } else if (verification?.tampering_score != null) {
+                      display = `${Math.round(verification.tampering_score)} / 100`;
+                      badgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+                    }
+
+                    return (
+                      <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded ${badgeClass}`}>
+                        {display}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <p className="text-[11px] text-slate-500 leading-snug">
                   {verification?.evidence?.tampering?.label || "Error Level Analysis compression variance detector."}

@@ -38,7 +38,7 @@ import {
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-type FilterStatus = "all" | "genuine" | "suspicious" | "fake" | "not_run";
+type FilterStatus = "all" | "genuine" | "suspicious" | "fake" | "inconclusive" | "not_run";
 
 // ---- Authenticated PDF report downloader -------------------------------------
 async function downloadReport(certId: string, verificationId?: string) {
@@ -165,6 +165,8 @@ export default function CertificateRegistryPage() {
         matchStatus = label === "suspicious";
       } else if (filterStatus === "fake") {
         matchStatus = label === "fake";
+      } else if (filterStatus === "inconclusive") {
+        matchStatus = label === "inconclusive" || label === "inconclusive / needs review";
       } else if (filterStatus === "not_run") {
         matchStatus = !label || label === "not_run" || label === "pending";
       }
@@ -187,6 +189,7 @@ export default function CertificateRegistryPage() {
     let genuine = 0;
     let suspicious = 0;
     let fake = 0;
+    let inconclusive = 0;
     let pending = 0;
 
     unifiedCertificates.forEach((c) => {
@@ -194,10 +197,11 @@ export default function CertificateRegistryPage() {
       if (l === "genuine") genuine++;
       else if (l === "suspicious") suspicious++;
       else if (l === "fake") fake++;
+      else if (l === "inconclusive" || l === "inconclusive / needs review") inconclusive++;
       else pending++;
     });
 
-    return { total: unifiedCertificates.length, genuine, suspicious, fake, pending };
+    return { total: unifiedCertificates.length, genuine, suspicious, fake, inconclusive, pending };
   }, [unifiedCertificates]);
 
   return (
@@ -299,6 +303,7 @@ export default function CertificateRegistryPage() {
               { id: "all", label: "All Records", count: counts.total },
               { id: "genuine", label: "Genuine", count: counts.genuine },
               { id: "suspicious", label: "Suspicious", count: counts.suspicious },
+              { id: "inconclusive", label: "Needs Review", count: counts.inconclusive },
               { id: "fake", label: "Forgeries", count: counts.fake },
               { id: "not_run", label: "Pending", count: counts.pending },
             ].map((tab) => (
@@ -392,9 +397,12 @@ export default function CertificateRegistryPage() {
                 <TableBody>
                   {filteredCertificates.map((c) => {
                     const isDownloading = downloadingId === c.id;
+                    const isInc = c.prediction_label === "inconclusive" || c.prediction_label === "inconclusive / needs review";
                     const verdictVariant =
                       c.prediction_label === "genuine"
                         ? "genuine"
+                        : isInc
+                        ? "inconclusive"
                         : c.prediction_label === "suspicious"
                         ? "suspicious"
                         : c.prediction_label === "fake"
@@ -473,7 +481,7 @@ export default function CertificateRegistryPage() {
                         {/* Final Verdict */}
                         <TableCell className="px-5 py-3.5 whitespace-nowrap">
                           <Badge variant={verdictVariant} size="sm">
-                            {c.prediction_label || "PENDING"}
+                            {isInc ? "NEEDS REVIEW" : (c.prediction_label || "PENDING")}
                           </Badge>
                         </TableCell>
 

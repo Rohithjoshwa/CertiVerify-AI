@@ -1,6 +1,6 @@
 export type AIMode = 'verify' | 'analyze' | 'investigate' | 'compare' | 'report';
 
-export type CertificateStatus = 'genuine' | 'suspicious' | 'fake' | 'analyzing';
+export type CertificateStatus = 'genuine' | 'suspicious' | 'fake' | 'inconclusive' | 'analyzing';
 
 export type ActiveView =
   | 'chat'

@@ -405,7 +405,7 @@ export const AIWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setActiveView('chat');
 
     let newArtifact: DocumentArtifact | null = null;
-    let verdict: 'genuine' | 'suspicious' | 'fake' | 'undetermined' | undefined = undefined;
+    let verdict: CertificateStatus | 'undetermined' | undefined = undefined;
     let trustScore: number | undefined = undefined;
     let confidence = 0.95;
     let narrative = "Verification in progress...";
@@ -586,7 +586,7 @@ export const AIWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // ── Stage 7: Prediction ───────────────────────────────────────────
         const predRes = await predictionApi.predict(certId);
         const predLabel = (predRes.data as any).predicted_class || predRes.data.label || 'genuine';
-        verdict = predLabel === 'fake' ? 'fake' : predLabel === 'suspicious' ? 'suspicious' : 'genuine';
+        verdict = predLabel === 'fake' ? 'fake' : predLabel === 'suspicious' ? 'suspicious' : (predLabel === 'inconclusive' || predLabel.includes('inconclusive')) ? 'inconclusive' : 'genuine';
         confidence = predRes.data.confidence_score || 0.95;
 
         // Business rule conflict validation (TEST N20)
@@ -656,7 +656,7 @@ export const AIWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
             documentType: c.file_type.toUpperCase(),
             institution: 'Uploaded Document',
             trustScore: c.id === certId ? (trustScore || 0) : 0,
-            verdict: (c.id === certId ? ((['genuine', 'suspicious', 'fake', 'analyzing'].includes(verdict || '') ? ((verdict || 'suspicious') as CertificateStatus) : 'suspicious')) : 'genuine'),
+            verdict: (c.id === certId ? ((['genuine', 'suspicious', 'fake', 'inconclusive', 'analyzing'].includes(verdict || '') ? ((verdict || 'suspicious') as CertificateStatus) : 'suspicious')) : 'genuine'),
             lastVerified: new Date(c.uploaded_at).toLocaleDateString(),
             fileSize: `${(c.file_size_bytes / 1024 / 1024).toFixed(1)} MB`
           })));

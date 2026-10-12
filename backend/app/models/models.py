@@ -401,7 +401,15 @@ class PredictionLabel(str, enum.Enum):
     GENUINE = "genuine"
     SUSPICIOUS = "suspicious"
     FAKE = "fake"
-    INCONCLUSIVE = "inconclusive / needs review"
+    INCONCLUSIVE = "inconclusive"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            v_lower = value.strip().lower()
+            if "inconclusive" in v_lower:
+                return cls.INCONCLUSIVE
+        return super()._missing_(value)
 
 
 class FinalPrediction(Base):

@@ -155,6 +155,7 @@ export default function EnterpriseDashboardPage() {
   const totalCerts = stats?.total_certificates ?? 0;
   const genuineCount = stats?.prediction_distribution?.genuine ?? overview?.genuine_count ?? 0;
   const suspiciousCount = stats?.prediction_distribution?.suspicious ?? overview?.suspicious_count ?? 0;
+  const inconclusiveCount = stats?.prediction_distribution?.inconclusive ?? 0;
   const fakeCount = stats?.prediction_distribution?.fake ?? overview?.fake_count ?? 0;
   const pendingCount = stats?.prediction_distribution?.not_run ?? 0;
   const avgTrust =
@@ -364,8 +365,13 @@ export default function EnterpriseDashboardPage() {
                     title={`Genuine: ${genuineCount}`}
                   />
                   <div
+                    style={{ width: `${(inconclusiveCount / totalCerts) * 100}%` }}
+                    className="bg-amber-400 h-full transition-all"
+                    title={`Needs Review: ${inconclusiveCount}`}
+                  />
+                  <div
                     style={{ width: `${(suspiciousCount / totalCerts) * 100}%` }}
-                    className="bg-amber-500 h-full transition-all"
+                    className="bg-amber-600 h-full transition-all"
                     title={`Suspicious: ${suspiciousCount}`}
                   />
                   <div
@@ -381,7 +387,7 @@ export default function EnterpriseDashboardPage() {
                 </div>
 
                 {/* Legend Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
                     <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -394,7 +400,17 @@ export default function EnterpriseDashboardPage() {
 
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
                     <div className="flex items-center gap-1.5 text-amber-700 font-semibold">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      Needs Review
+                    </div>
+                    <div className="font-mono text-lg font-bold text-slate-900 mt-1">
+                      {inconclusiveCount}
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-amber-800 font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-amber-600" />
                       Suspicious
                     </div>
                     <div className="font-mono text-lg font-bold text-slate-900 mt-1">
@@ -559,9 +575,12 @@ export default function EnterpriseDashboardPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {stats.recent_certificates.slice(0, 6).map((cert: RecentCertificate) => {
+                      const isInc = cert.prediction_label === "inconclusive" || cert.prediction_label === "inconclusive / needs review";
                       const verdictVariant =
                         cert.prediction_label === "genuine"
                           ? "genuine"
+                          : isInc
+                          ? "inconclusive"
                           : cert.prediction_label === "suspicious"
                           ? "suspicious"
                           : cert.prediction_label === "fake"
@@ -605,7 +624,7 @@ export default function EnterpriseDashboardPage() {
                           </td>
                           <td className="px-5 py-3.5">
                             <Badge variant={verdictVariant} size="sm">
-                              {cert.prediction_label || "PENDING"}
+                              {isInc ? "NEEDS REVIEW" : (cert.prediction_label || "PENDING")}
                             </Badge>
                           </td>
                           <td className="px-5 py-3.5 text-right whitespace-nowrap">

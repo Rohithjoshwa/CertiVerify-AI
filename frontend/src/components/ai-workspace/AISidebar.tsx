@@ -51,6 +51,9 @@ export const AISidebar: React.FC = () => {
     if (verdict === 'suspicious') {
       return <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse" title="Suspicious" />;
     }
+    if (verdict === 'inconclusive') {
+      return <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Needs Review (Inconclusive)" />;
+    }
     if (verdict === 'fake') {
       return <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Fake" />;
     }

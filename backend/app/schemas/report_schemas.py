@@ -24,6 +24,7 @@ class PredictionDistribution(BaseModel):
     genuine: int = 0
     suspicious: int = 0
     fake: int = 0
+    inconclusive: int = 0
     not_run: int = 0
 
 

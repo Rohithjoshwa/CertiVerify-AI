@@ -37,6 +37,7 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
     { label: "All Records", value: "all" },
     { label: "Genuine", value: "genuine" },
     { label: "Suspicious", value: "suspicious" },
+    { label: "Needs Review", value: "inconclusive" },
     { label: "Fake", value: "fake" },
     { label: "Pending Verification", value: "not_run" },
   ];
@@ -53,6 +54,13 @@ export const RecentCertificatesTable: React.FC<RecentCertificatesTableProps> = (
         return (
           <Badge variant="suspicious" size="sm" dot>
             SUSPICIOUS
+          </Badge>
+        );
+      case "inconclusive":
+      case "inconclusive / needs review":
+        return (
+          <Badge variant="inconclusive" size="sm" dot>
+            NEEDS REVIEW
           </Badge>
         );
       case "fake":

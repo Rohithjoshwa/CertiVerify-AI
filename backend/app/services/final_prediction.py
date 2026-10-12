@@ -141,7 +141,19 @@ def predict(inputs: PredictionInputs) -> PredictionResult:
         partial_note = f"Partial verification: {completed_checks} of {total_checks} checks completed"
 
     if label == "genuine" and has_partial_critical:
-        label = "inconclusive / needs review"
+        label = "inconclusive"
+
+    # Rule 6: For text-only PDFs (status not_applicable_for_pdf_text_layer):
+    # require a verified QR on a trusted domain or a blockchain match to allow "genuine";
+    # otherwise return "inconclusive".
+    tamp_st = (inputs.tampering_status or "").lower()
+    is_text_only_pdf = tamp_st == "not_applicable_for_pdf_text_layer"
+    has_trusted_external_anchor = (inputs.qr_present is True and inputs.qr_valid is True) or (
+        inputs.blockchain_status == "verified"
+    )
+    if label == "genuine" and is_text_only_pdf and not has_trusted_external_anchor:
+        label = "inconclusive"
+        missing_critical.append("external anchor (verified QR code or blockchain match required for digital text-only PDF)")
 
     dist_label = label if label in ("genuine", "suspicious", "fake") else "suspicious"
     boundary_distance = _boundary_distance(score, dist_label)
@@ -166,7 +178,7 @@ def predict(inputs: PredictionInputs) -> PredictionResult:
         label = "fake"
         confidence = max(confidence, 0.90)
     elif inputs.is_duplicate and is_altered:
-        if label in ("genuine", "inconclusive / needs review"):
+        if label in ("genuine", "inconclusive", "inconclusive / needs review"):
             label = "suspicious"
 
     # ── Build structured evidence breakdown ───────────────────────────────
@@ -592,8 +604,8 @@ def _build_recommended_action(label: str, inputs: PredictionInputs | bool | None
         return "Manual review recommended — same register number was previously uploaded with different file content."
     if label == "genuine":
         return "No further action needed. This certificate passed verification."
-    if label == "inconclusive / needs review":
-        return "Inconclusive / needs review — manual inspection required due to incomplete verification checks."
+    if label in ("inconclusive", "inconclusive / needs review"):
+        return "Inconclusive / needs review — manual inspection required due to incomplete verification checks or missing external anchor."
     if label == "suspicious":
         return "Manual review recommended before relying on this certificate. Check the flagged factors above."
     return "Reject this certificate. Consider contacting the issuing institution to confirm its authenticity."

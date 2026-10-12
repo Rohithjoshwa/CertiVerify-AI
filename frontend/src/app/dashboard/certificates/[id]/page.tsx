@@ -845,11 +845,21 @@ function VerificationStatusLine({
 }
 
 function VerdictCard({ prediction }: { prediction: FinalPredictionResponse }) {
-  const config = {
+  const configMap: Record<string, { icon: any; color: string; bg: string; border: string; label: string; emoji: string }> = {
     genuine: { icon: ShieldCheck, color: "text-genuine", bg: "bg-genuine/10", border: "border-genuine/30", label: "Genuine", emoji: "✅" },
     suspicious: { icon: ShieldAlert, color: "text-suspicious", bg: "bg-suspicious/10", border: "border-suspicious/30", label: "Suspicious", emoji: "⚠️" },
+    inconclusive: { icon: ShieldAlert, color: "text-amber-600", bg: "bg-amber-500/10", border: "border-amber-500/30", label: "Needs Review", emoji: "⚠️" },
+    "inconclusive / needs review": { icon: ShieldAlert, color: "text-amber-600", bg: "bg-amber-500/10", border: "border-amber-500/30", label: "Needs Review", emoji: "⚠️" },
     fake: { icon: ShieldX, color: "text-fake", bg: "bg-fake/10", border: "border-fake/30", label: "Fake", emoji: "❌" },
-  }[prediction.label];
+  };
+  const config = configMap[prediction.label.toLowerCase()] || {
+    icon: ShieldAlert,
+    color: "text-amber-600",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+    label: prediction.label || "Needs Review",
+    emoji: "⚠️",
+  };
 
   const Icon = config.icon;
   const summary = prediction.verification_summary;

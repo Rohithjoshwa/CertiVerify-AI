@@ -90,6 +90,19 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
           label: "SUSPICIOUS / IRREGULAR",
           statusText: "Anomalies Detected — Manual Review Required",
         };
+      case "inconclusive":
+      case "inconclusive / needs review":
+        return {
+          variant: "inconclusive" as const,
+          badgeBg: "bg-amber-50",
+          badgeBorder: "border-amber-300",
+          badgeText: "text-amber-800",
+          bannerBg: "bg-amber-50/70",
+          border: "border-amber-200",
+          icon: AlertTriangle,
+          label: "NEEDS REVIEW / INCONCLUSIVE",
+          statusText: "Inconclusive — Some Verification Signals Missing",
+        };
       case "fake":
         return {
           variant: "fake" as const,
@@ -138,10 +151,43 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
 
   const qrStatus = verification?.evidence?.qr?.status || (verification?.verification_summary?.qr_checked ? "CHECKED" : "UNAVAILABLE");
   const blockchainStatus = verification?.evidence?.blockchain?.status || (verification?.verification_summary?.blockchain_checked ? "CHECKED" : "NOT_REGISTERED");
-  const tamperingStatus =
-    verification?.evidence?.tampering?.status === "CLEAN" || verification?.evidence?.tampering?.status === "PASS"
-      ? "NOT_DETECTED"
-      : verification?.evidence?.tampering?.status || "UNAVAILABLE";
+
+  const rawTamperStatus =
+    verification?.tampering_status ||
+    verification?.evidence?.tampering?.status ||
+    (prediction?.evidence_breakdown?._tampering as any)?.status ||
+    (trustScore?.breakdown?.evidence_breakdown?._tampering as any)?.status;
+
+  const formatTamperingText = () => {
+    if (!rawTamperStatus) {
+      if (verification?.tampering_score !== undefined && verification?.tampering_score !== null) {
+        return `Analyzed (${Math.round(verification.tampering_score)}/100)`;
+      }
+      return "Not run";
+    }
+    if (rawTamperStatus === "analyzed") {
+      return verification?.tampering_score != null
+        ? `Analyzed (${Math.round(verification.tampering_score)}/100)`
+        : "Analyzed";
+    }
+    if (rawTamperStatus === "not_applicable_for_pdf_text_layer") {
+      return "Not applicable (PDF text layer)";
+    }
+    if (rawTamperStatus.startsWith("failed:")) {
+      return `Failed (${rawTamperStatus.replace(/^failed:\s*/, "")})`;
+    }
+    if (rawTamperStatus.startsWith("skipped:")) {
+      return `Skipped (${rawTamperStatus.replace(/^skipped:\s*/, "")})`;
+    }
+    if (rawTamperStatus === "CLEAN" || rawTamperStatus === "PASS" || rawTamperStatus === "NOT_DETECTED") {
+      return "Not detected";
+    }
+    if (rawTamperStatus === "TAMPERED" || rawTamperStatus === "FAIL") {
+      return `Tamper detected (${verification?.tampering_score != null ? Math.round(verification.tampering_score) : 0}/100)`;
+    }
+    return rawTamperStatus;
+  };
+
   const duplicateStatus =
     verification?.evidence?.duplicate?.status === "UNIQUE" || verification?.evidence?.duplicate?.status === "NO_DUPLICATE" || verification?.evidence?.duplicate?.status === "PASS"
       ? "NOT_DETECTED"
@@ -213,6 +259,30 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
         <p className="text-xs text-slate-600 leading-relaxed">
           {prediction.explanation}
         </p>
+
+        {/* Partial Verification / Missing Checks Detail */}
+        {(() => {
+          const partial = (prediction?.evidence?._partial_verification as any) || (prediction?.evidence_breakdown?._partial_verification as any);
+          if (!partial && verdict !== "inconclusive" && !verdict.includes("inconclusive")) return null;
+          return (
+            <div className="pt-2 border-t border-amber-300/60 mt-2 space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-amber-950 flex-wrap">
+                <span className="text-[11px] uppercase tracking-wider font-mono">Partial verification note:</span>
+                {partial?.note && (
+                  <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full text-[11px] font-medium border border-amber-300">
+                    {partial.note}
+                  </span>
+                )}
+              </div>
+              {partial?.missing_checks && partial.missing_checks.length > 0 && (
+                <p className="text-amber-900 text-[11px] font-mono">
+                  <span className="font-semibold font-sans">Missing verification checks: </span>
+                  {partial.missing_checks.join(", ")}
+                </p>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Exact Core Metrics Grid */}
@@ -306,13 +376,15 @@ export const CompleteVerificationResultCard: React.FC<CompleteVerificationResult
             </span>
             <div className="flex items-center justify-between pt-0.5">
               <span className={`text-xs font-mono font-semibold ${
-                tamperingStatus === "NOT_DETECTED"
+                rawTamperStatus === "CLEAN" || rawTamperStatus === "PASS" || rawTamperStatus === "analyzed"
                   ? "text-emerald-700"
-                  : tamperingStatus === "TAMPERED"
+                  : rawTamperStatus === "not_applicable_for_pdf_text_layer"
+                  ? "text-amber-700"
+                  : rawTamperStatus?.startsWith("failed:") || rawTamperStatus === "TAMPERED" || rawTamperStatus === "FAIL"
                   ? "text-rose-700"
-                  : "text-slate-500"
+                  : "text-slate-600"
               }`}>
-                {tamperingStatus === "NOT_DETECTED" ? "Not Detected" : tamperingStatus}
+                {formatTamperingText()}
               </span>
             </div>
           </div>

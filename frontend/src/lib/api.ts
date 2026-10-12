@@ -391,11 +391,14 @@ export interface VerificationResultResponse {
   hash_match_status?: string;              // MATCH | MISMATCH | NOT_REGISTERED | NOT_CHECKED
   // Tampering Detection
   tampering_score?: number;
+  tampering_status?: string | null;
   tampering_flags?: string[];
   ela_heatmap_path?: string;
   tampering_risk_level?: string;           // LOW | MINOR_ANOMALIES | MODERATE_RISK | HIGH_RISK | VERY_HIGH_RISK
   tampering_confidence?: number;           // 0-100
   tampering_detail?: {
+    status?: string;
+    tampering_status?: string;
     image_quality?: {
       score: number;                       // 0-100 (high = good)
       status: string;                      // GOOD | MODERATE | POOR
@@ -580,6 +583,8 @@ export interface TrustScoreResponse {
   breakdown: {
     weights: Record<string, number>;
     factor_trust_values: Record<string, number>;
+    evidence_breakdown?: EvidenceBreakdown;
+    [key: string]: any;
   };
   created_at: string;
 }
@@ -613,6 +618,14 @@ export interface EvidenceFactor {
   display_status?: string;
 }
 
+export interface PartialVerificationInfo {
+  completed: number;
+  total: number;
+  note: string;
+  is_partial: boolean;
+  missing_checks?: string[];
+}
+
 export interface EvidenceBreakdown {
   ocr?: EvidenceFactor;
   classification?: EvidenceFactor;
@@ -623,18 +636,20 @@ export interface EvidenceBreakdown {
   tampering?: EvidenceFactor;
   duplicate?: EvidenceFactor;
   metadata?: EvidenceFactor;
-  [key: string]: EvidenceFactor | undefined;
+  _partial_verification?: PartialVerificationInfo;
+  [key: string]: any;
 }
 
 export interface FinalPredictionResponse {
   id: string;
   certificate_id: string;
-  label: "genuine" | "suspicious" | "fake";
+  label: "genuine" | "suspicious" | "fake" | "inconclusive" | string;
   confidence_score: number;
   explanation: string;
   recommended_action: string;
   fraud_probability?: number;
   evidence?: EvidenceBreakdown;
+  evidence_breakdown?: EvidenceBreakdown;
   reasons?: string[];
   verification_summary?: VerificationSummary;
   created_at: string;
@@ -645,7 +660,7 @@ export interface VerificationResultResponse {
   certificate_id: string;
   trust_score?: number;
   fraud_probability?: number;
-  prediction?: "genuine" | "suspicious" | "fake";
+  prediction?: "genuine" | "suspicious" | "fake" | "inconclusive" | string;
   confidence?: number;
   explanation?: string;
   recommended_action?: string;
@@ -759,6 +774,7 @@ export interface PredictionDistribution {
   genuine: number;
   suspicious: number;
   fake: number;
+  inconclusive?: number;
   not_run: number;
 }
 

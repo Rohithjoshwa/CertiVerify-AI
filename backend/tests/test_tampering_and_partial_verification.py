@@ -122,11 +122,11 @@ def test_missing_critical_check_yields_inconclusive_verdict_instead_of_genuine()
     )
     incomplete_result = predict(incomplete_inputs)
 
-    assert incomplete_result.label == "inconclusive / needs review"
+    assert incomplete_result.label in ("inconclusive", "inconclusive / needs review")
     assert "Partial verification:" in incomplete_result.explanation or any(
         "Partial verification:" in r for r in incomplete_result.reasons
     )
-    assert "inconclusive / needs review" in incomplete_result.recommended_action.lower()
+    assert "inconclusive" in incomplete_result.recommended_action.lower()
 
     # Once tampering check is provided and passed, it can be genuine
     complete_inputs = PredictionInputs(
@@ -142,19 +142,53 @@ def test_missing_critical_check_yields_inconclusive_verdict_instead_of_genuine()
     assert complete_result.label == "genuine"
 
 
-def test_digital_text_layer_pdf_allows_genuine_verdict():
+def test_text_only_pdf_requires_verified_qr_or_blockchain_for_genuine():
     """
-    A digital PDF where raster tampering is 'not_applicable_for_pdf_text_layer'
-    is a recognized valid completed state, allowing genuine verdict if other checks pass.
+    For text-only PDFs (status not_applicable_for_pdf_text_layer):
+    require a verified QR on a trusted domain or a blockchain match to allow 'genuine';
+    otherwise return 'inconclusive'.
     """
-    digital_inputs = PredictionInputs(
+    # 1. Text-only PDF without verified QR or blockchain match -> must return inconclusive
+    no_anchor_inputs = PredictionInputs(
         trust_score=95.0,
         data_completeness=0.9,
         ocr_accuracy=0.95,
         is_duplicate=False,
         tampering_score=None,
         tampering_status="not_applicable_for_pdf_text_layer",
+        blockchain_status="not_found",
+        qr_present=False,
         fraud_probability=0.02,
     )
-    res = predict(digital_inputs)
-    assert res.label == "genuine"
+    res_no_anchor = predict(no_anchor_inputs)
+    assert res_no_anchor.label in ("inconclusive", "inconclusive / needs review")
+
+    # 2. Text-only PDF with verified QR on trusted domain -> allows genuine
+    qr_anchor_inputs = PredictionInputs(
+        trust_score=95.0,
+        data_completeness=1.0,
+        ocr_accuracy=0.95,
+        is_duplicate=False,
+        tampering_score=None,
+        tampering_status="not_applicable_for_pdf_text_layer",
+        qr_present=True,
+        qr_valid=True,
+        fraud_probability=0.02,
+    )
+    res_qr = predict(qr_anchor_inputs)
+    assert res_qr.label == "genuine"
+
+    # 3. Text-only PDF with blockchain match -> allows genuine
+    bc_anchor_inputs = PredictionInputs(
+        trust_score=95.0,
+        data_completeness=1.0,
+        ocr_accuracy=0.95,
+        is_duplicate=False,
+        tampering_score=None,
+        tampering_status="not_applicable_for_pdf_text_layer",
+        blockchain_status="verified",
+        qr_present=False,
+        fraud_probability=0.02,
+    )
+    res_bc = predict(bc_anchor_inputs)
+    assert res_bc.label == "genuine"

@@ -262,9 +262,25 @@ export default function VerificationReportsPage() {
                     </div>
 
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                      <span className="text-[10px] text-slate-400 block font-semibold">TAMPERING SCORE</span>
-                      <span className={`font-bold ${verification.tampering_score && verification.tampering_score > 30 ? "text-rose-700" : "text-emerald-700"}`}>
-                        {verification.tampering_score ?? 0} / 100
+                      <span className="text-[10px] text-slate-400 block font-semibold">TAMPERING SCAN</span>
+                      <span className={`font-bold ${
+                        verification.tampering_status === "not_applicable_for_pdf_text_layer"
+                          ? "text-amber-700"
+                          : verification.tampering_status?.startsWith("failed:")
+                          ? "text-rose-700"
+                          : verification.tampering_score && verification.tampering_score > 30
+                          ? "text-rose-700"
+                          : "text-emerald-700"
+                      }`}>
+                        {verification.tampering_status === "not_applicable_for_pdf_text_layer"
+                          ? "NOT APPLICABLE"
+                          : verification.tampering_status?.startsWith("failed:")
+                          ? "FAILED"
+                          : verification.tampering_status?.startsWith("skipped:")
+                          ? "SKIPPED"
+                          : verification.tampering_score !== undefined && verification.tampering_score !== null
+                          ? `${verification.tampering_score} / 100`
+                          : "PENDING"}
                       </span>
                     </div>
                   </div>

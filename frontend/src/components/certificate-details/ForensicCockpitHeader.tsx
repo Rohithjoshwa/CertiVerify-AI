@@ -17,6 +17,7 @@ import {
   Calendar,
   Layers,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   CertificateResponse,
@@ -101,20 +102,22 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                 {cert?.original_filename || "Certificate Inspection"}
               </h1>
-              {prediction && (
-                <Badge
-                  variant={
-                    prediction.label === "genuine"
-                      ? "genuine"
-                      : prediction.label === "suspicious"
-                      ? "suspicious"
-                      : "fake"
-                  }
-                  size="md"
-                >
-                  {prediction.label.toUpperCase()}
-                </Badge>
-              )}
+              {prediction && (() => {
+                const isInc = prediction.label === "inconclusive" || prediction.label.includes("inconclusive");
+                const variant = prediction.label === "genuine"
+                  ? "genuine"
+                  : isInc
+                  ? "inconclusive"
+                  : prediction.label === "suspicious"
+                  ? "suspicious"
+                  : "fake";
+                const display = isInc ? "NEEDS REVIEW" : prediction.label.toUpperCase();
+                return (
+                  <Badge variant={variant} size="md">
+                    {display}
+                  </Badge>
+                );
+              })()}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               AI Forensic Cockpit • Full Integrity & Cryptographic Verification Audit
@@ -289,6 +292,36 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
         </div>
       </div>
 
+      {/* Inconclusive / Needs Review Alert Banner */}
+      {prediction && (prediction.label === "inconclusive" || prediction.label.includes("inconclusive")) && (() => {
+        const partial = (prediction.evidence?._partial_verification as any) || (prediction.evidence_breakdown?._partial_verification as any);
+        const missing = partial?.missing_checks;
+        return (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-3.5 flex items-start gap-3 text-xs text-amber-950 shadow-xs">
+            <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-amber-950 flex-wrap">
+                <span>Verdict Inconclusive — Needs Review</span>
+                {partial?.note && (
+                  <span className="text-[11px] font-medium text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300 font-mono">
+                    {partial.note}
+                  </span>
+                )}
+              </div>
+              <p className="text-amber-900">
+                {prediction.explanation || "One or more critical verification checks could not run or require external cryptographic proof."}
+              </p>
+              {missing && missing.length > 0 && (
+                <p className="text-[11px] text-amber-900 font-mono pt-1 border-t border-amber-200">
+                  <span className="font-semibold font-sans">Missing verification checks: </span>
+                  {missing.join(", ")}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Primary Cockpit Navigation Tabs */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div className="flex items-center gap-2">
@@ -302,19 +335,24 @@ export const ForensicCockpitHeader: React.FC<ForensicCockpitHeaderProps> = ({
           >
             <Layers size={14} />
             <span>AI Forensic Cockpit</span>
-            {prediction && (
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                  prediction.label === "genuine"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : prediction.label === "suspicious"
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-rose-100 text-rose-800"
-                }`}
-              >
-                {prediction.label}
-              </span>
-            )}
+            {prediction && (() => {
+              const isInc = prediction.label === "inconclusive" || prediction.label.includes("inconclusive");
+              return (
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                    prediction.label === "genuine"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : isInc
+                      ? "bg-amber-100 text-amber-900 border border-amber-300"
+                      : prediction.label === "suspicious"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-rose-100 text-rose-800"
+                  }`}
+                >
+                  {isInc ? "Needs review" : prediction.label}
+                </span>
+              );
+            })()}
           </button>
 
           <button

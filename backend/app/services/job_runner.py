@@ -138,24 +138,19 @@ async def execute_verification_pipeline(job_id: str, is_retry: bool = False):
                     vr_obj = vr_res.scalar_one_or_none()
                     await emit_qr_evidence(db, cert, vr_obj, verification_job_id=job.id, actor_user_id=user.id)
                     
-                    # If QR code is present and valid, skip Blockchain and Tampering stages
+                    # If QR code is present and valid, blockchain lookup may be marked optional/skipped,
+                    # but Tampering Analysis MUST always run to check visual forgery/manipulation.
                     if vr_obj and vr_obj.qr_present and vr_obj.qr_valid:
-                        logger.info("QR code verified for certificate %s. Skipping Blockchain and Tamper stages.", cert.id)
-                        vr_obj.blockchain_status = "skipped"
-                        vr_obj.tampering_risk_level = "SKIPPED"
-                        await db.commit()
-                        
+                        logger.info("QR code verified for certificate %s. Blockchain marked optional.", cert.id)
+                        if not vr_obj.blockchain_status or vr_obj.blockchain_status == "unavailable":
+                            vr_obj.blockchain_status = "skipped: verified_via_qr"
+                            await db.commit()
+
                         stage_states[PipelineStage.BLOCKCHAIN_VERIFICATION.value] = {
                             "status": "SKIPPED",
                             "label": "Blockchain Verification",
                             "completed_at": datetime.utcnow().isoformat(),
-                            "details": "Skipped — Verified via QR"
-                        }
-                        stage_states[PipelineStage.TAMPER_ANALYSIS.value] = {
-                            "status": "SKIPPED",
-                            "label": "Tampering Analysis",
-                            "completed_at": datetime.utcnow().isoformat(),
-                            "details": "Skipped — Verified via QR"
+                            "details": "Skipped — Verified via QR",
                         }
 
                 elif stage_enum == PipelineStage.BLOCKCHAIN_VERIFICATION:
@@ -167,9 +162,6 @@ async def execute_verification_pipeline(job_id: str, is_retry: bool = False):
                     await emit_blockchain_evidence(db, cert, vr_res.scalar_one_or_none(), verification_job_id=job.id, actor_user_id=user.id)
 
                 elif stage_enum == PipelineStage.TAMPER_ANALYSIS:
-                    if stage_states.get(stage_key, {}).get("status") == "SKIPPED":
-                        logger.info("Skipping stage %s for job %s (QR verified)", stage_key, job_id)
-                        continue
                     await run_tampering_detection(cert.id, user, db)
                     vr_res = await db.execute(select(VerificationResult).where(VerificationResult.certificate_id == cert.id))
                     await emit_tampering_evidence(db, cert, vr_res.scalar_one_or_none(), verification_job_id=job.id, actor_user_id=user.id)

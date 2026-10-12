@@ -40,6 +40,7 @@ export const FinalVerdictMegaCard: React.FC<FinalVerdictMegaCardProps> = ({
   computingTrust,
 }) => {
   const label = (prediction?.label || "pending").toLowerCase();
+  const isInc = label === "inconclusive" || label.includes("inconclusive");
 
   const themeConfig = {
     genuine: {
@@ -57,6 +58,14 @@ export const FinalVerdictMegaCard: React.FC<FinalVerdictMegaCardProps> = ({
       badgeVariant: "suspicious" as const,
       icon: ShieldAlert,
       title: "Suspicious Indicators Detected",
+    },
+    inconclusive: {
+      cardBg: "bg-amber-50/50 border-amber-300",
+      iconBg: "bg-amber-100 text-amber-800",
+      titleColor: "text-amber-950",
+      badgeVariant: "inconclusive" as const,
+      icon: ShieldAlert,
+      title: "Needs Review — Verification Inconclusive",
     },
     fake: {
       cardBg: "bg-red-50/40 border-red-200",
@@ -76,7 +85,8 @@ export const FinalVerdictMegaCard: React.FC<FinalVerdictMegaCardProps> = ({
     },
   };
 
-  const theme = themeConfig[label as keyof typeof themeConfig] || themeConfig.pending;
+  const themeKey = isInc ? "inconclusive" : label;
+  const theme = themeConfig[themeKey as keyof typeof themeConfig] || themeConfig.pending;
   const IconComponent = theme.icon;
 
   const fraudProbability = fraud?.fraud_probability ?? prediction?.fraud_probability ?? null;
@@ -99,7 +109,7 @@ export const FinalVerdictMegaCard: React.FC<FinalVerdictMegaCardProps> = ({
                 </span>
                 {prediction && (
                   <Badge variant={theme.badgeVariant} size="sm">
-                    {prediction.label} • {Math.round(prediction.confidence_score * 100)}% Confidence
+                    {isInc ? "Needs Review" : prediction.label} • {Math.round(prediction.confidence_score * 100)}% Confidence
                   </Badge>
                 )}
               </div>
@@ -113,6 +123,30 @@ export const FinalVerdictMegaCard: React.FC<FinalVerdictMegaCardProps> = ({
             {prediction?.explanation ||
               "Run the AI forensic engine to synthesize OCR extractions, cryptographic records, digital QR signatures, noise analysis, and duplicate detection into a unified verdict."}
           </p>
+
+          {(() => {
+            const partial = (prediction?.evidence?._partial_verification as any) || (prediction?.evidence_breakdown?._partial_verification as any);
+            if (!partial) return null;
+            return (
+              <div className="p-3 bg-amber-50/90 border border-amber-300 rounded-xl space-y-1.5 text-xs text-amber-950">
+                <div className="flex items-center gap-2 font-semibold flex-wrap">
+                  <ShieldAlert size={15} className="text-amber-600 shrink-0" />
+                  <span>Partial Verification Incomplete</span>
+                  {partial?.note && (
+                    <span className="font-mono text-[11px] font-medium bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">
+                      {partial.note}
+                    </span>
+                  )}
+                </div>
+                {partial?.missing_checks && partial.missing_checks.length > 0 && (
+                  <p className="text-amber-900 text-[11px] font-mono">
+                    <span className="font-semibold font-sans">Missing verification checks: </span>
+                    {partial.missing_checks.join(", ")}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {prediction?.recommended_action && (
             <div className="p-4 bg-white/80 border border-slate-200/80 rounded-xl space-y-1">

@@ -92,7 +92,9 @@ export default function VerificationHistoryPage() {
 
       const matchesVerdict =
         verdictFilter === "all" ||
-        (item.prediction || "").toLowerCase() === verdictFilter.toLowerCase();
+        (verdictFilter === "inconclusive"
+          ? (item.prediction || "").toLowerCase() === "inconclusive" || (item.prediction || "").toLowerCase().includes("inconclusive")
+          : (item.prediction || "").toLowerCase() === verdictFilter.toLowerCase());
 
       return matchesSearch && matchesVerdict;
     });
@@ -165,6 +167,7 @@ export default function VerificationHistoryPage() {
                   { value: "all", label: "All Verdicts" },
                   { value: "genuine", label: "Genuine Only" },
                   { value: "suspicious", label: "Suspicious Only" },
+                  { value: "inconclusive", label: "Needs Review Only" },
                   { value: "fake", label: "Fake Only" },
                 ]}
               />
@@ -226,9 +229,12 @@ export default function VerificationHistoryPage() {
                   </TableHeader>
                   <TableBody>
                     {paginatedItems.map((item, idx) => {
+                      const isInc = item.prediction === "inconclusive" || (item.prediction || "").toLowerCase().includes("inconclusive");
                       const verdictVariant =
                         item.prediction === "genuine"
                           ? "genuine"
+                          : isInc
+                          ? "inconclusive"
                           : item.prediction === "suspicious"
                           ? "suspicious"
                           : item.prediction === "fake"
@@ -279,7 +285,7 @@ export default function VerificationHistoryPage() {
                           </TableCell>
                           <TableCell className="px-5 py-3.5 whitespace-nowrap">
                             <Badge variant={verdictVariant} size="sm">
-                              {item.prediction || "COMPLETED"}
+                              {isInc ? "NEEDS REVIEW" : (item.prediction || "COMPLETED")}
                             </Badge>
                           </TableCell>
                           <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">

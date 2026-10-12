@@ -327,8 +327,10 @@ async def get_dashboard_stats(
                 dist.suspicious += 1
             elif pred.label == "fake":
                 dist.fake += 1
-        else:
-            dist.not_run += 1
+            elif "inconclusive" in str(pred.label).lower():
+                dist.inconclusive += 1
+            else:
+                dist.not_run += 1
 
     total_reports = len(report_rows)
 
