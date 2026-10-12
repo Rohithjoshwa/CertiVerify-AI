@@ -263,15 +263,26 @@ async def execute_verification_pipeline(job_id: str, is_retry: bool = False):
             )
 
         except Exception as exc:
-            logger.error("Job %s failed at stage %s: %s", job_id, job.current_stage, exc, exc_info=True)
+            import traceback
+            tb_str = traceback.format_exc()
+            logger.error("Job %s failed at stage %s: %s\n%s", job_id, job.current_stage, exc, tb_str)
             failed_stage_name = job.current_stage.value if hasattr(job.current_stage, "value") else str(job.current_stage)
             job.status = JobStatus.FAILED
             job.failed_stage = failed_stage_name
-            job.error_details = str(exc)
+
+            if isinstance(exc, HTTPException):
+                if isinstance(exc.detail, dict):
+                    err_reason = exc.detail.get("error") or exc.detail.get("message") or str(exc.detail)
+                else:
+                    err_reason = str(exc.detail)
+            else:
+                err_reason = str(exc)
+
+            job.error_details = err_reason
 
             if failed_stage_name in stage_states:
                 stage_states[failed_stage_name]["status"] = "FAILED"
-                stage_states[failed_stage_name]["error"] = str(exc)
+                stage_states[failed_stage_name]["error"] = err_reason
                 job.stage_states = dict(stage_states)
 
             await db.commit()

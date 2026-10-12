@@ -336,22 +336,22 @@ async def run_full_verification(
     try:
         await run_qr_check(certificate_id, user, db)
     except Exception as exc:
-        logger.warning("QR check failed for cert %s: %s", certificate_id, exc)
+        logger.error("QR check failed for cert %s: %s", certificate_id, exc, exc_info=True)
 
     try:
         await run_blockchain_verification(certificate_id, user, db)
     except Exception as exc:
-        logger.warning("Blockchain check failed for cert %s: %s", certificate_id, exc)
+        logger.error("Blockchain check failed for cert %s: %s", certificate_id, exc, exc_info=True)
 
     try:
         await run_tampering_detection(certificate_id, user, db)
     except Exception as exc:
-        logger.warning("Tampering check failed for cert %s: %s", certificate_id, exc)
+        logger.error("Tampering check failed for cert %s: %s", certificate_id, exc, exc_info=True)
 
     try:
         await run_duplicate_detection(certificate_id, user, db)
     except Exception as exc:
-        logger.warning("Duplicate check failed for cert %s: %s", certificate_id, exc)
+        logger.error("Duplicate check failed for cert %s: %s", certificate_id, exc, exc_info=True)
 
     from app.services.audit_service import log_audit_event
     await log_audit_event(

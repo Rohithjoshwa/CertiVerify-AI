@@ -341,8 +341,10 @@ async function handleVerifyQr() {
     const { data } = await verificationApi.verifyQr(id);
     setVerification(data);
     await loadPipeline();
-  } catch {
-    setError("QR verification failed. Run OCR extraction first so a QR code can be detected.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `QR verification failed: ${msg}` : "QR verification failed. Run OCR extraction first so a QR code can be detected.");
   } finally {
     setVerifyingQr(false);
   }
@@ -355,8 +357,10 @@ async function handleVerifyBlockchain() {
     const { data } = await verificationApi.verifyBlockchain(id);
     setVerification(data);
     await loadPipeline();
-  } catch {
-    setError("Blockchain verification failed to run.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `Blockchain verification failed: ${msg}` : "Blockchain verification failed to run.");
   } finally {
     setVerifyingChain(false);
   }
@@ -369,8 +373,10 @@ async function handleVerifyTampering() {
     const { data } = await verificationApi.verifyTampering(id);
     setVerification(data);
     await loadPipeline();
-  } catch {
-    setError("Tampering analysis failed. The file may be unreadable.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `Tampering analysis failed: ${msg}` : "Tampering analysis failed. The file may be unreadable.");
   } finally {
     setVerifyingTampering(false);
   }
@@ -383,8 +389,10 @@ async function handleVerifyDuplicate() {
     const { data } = await verificationApi.verifyDuplicate(id);
     setVerification(data);
     await loadPipeline();
-  } catch {
-    setError("Duplicate check failed. Please try again.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `Duplicate check failed: ${msg}` : "Duplicate check failed. Please try again.");
   } finally {
     setVerifyingDuplicate(false);
   }
@@ -402,8 +410,10 @@ async function handleVerifyAll() {
       setReport(rep);
     } catch { }
     await loadPipeline();
-  } catch {
-    setError("Full verification failed to complete. Try running each check individually.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `Verification failed: ${msg}` : "Full verification failed to complete. Try running each check individually.");
   } finally {
     setVerifyingAll(false);
   }
@@ -415,8 +425,10 @@ async function handleAnalyzeFraud() {
     const { data } = await fraudApi.analyze(id);
     setFraudAnalysis(data);
     await handleComputeTrustScore();
-  } catch {
-    setError("Fraud analysis failed. Run at least QR/Blockchain/Tampering/Duplicate checks first.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `Fraud analysis failed: ${msg}` : "Fraud analysis failed. Run at least QR/Blockchain/Tampering/Duplicate checks first.");
   } finally {
     setAnalyzingFraud(false);
   }
@@ -428,8 +440,10 @@ async function handleComputeTrustScore() {
     const { data } = await trustScoreApi.compute(id);
     setTrustScore(data);
     await handlePredict();
-  } catch {
-    setError("Trust score computation failed.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `Trust score computation failed: ${msg}` : "Trust score computation failed.");
   } finally {
     setComputingTrust(false);
   }
@@ -441,8 +455,10 @@ async function handlePredict() {
     const { data } = await predictionApi.predict(id);
     setPrediction(data);
     await loadPipeline();
-  } catch {
-    setError("Final prediction failed. Compute the Trust Score first.");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail;
+    const msg = typeof detail === 'string' ? detail : detail?.message || detail?.error || err?.message;
+    setError(msg ? `Final prediction failed: ${msg}` : "Final prediction failed. Compute the Trust Score first.");
   } finally {
     setPredicting(false);
   }

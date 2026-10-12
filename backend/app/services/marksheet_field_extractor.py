@@ -284,7 +284,7 @@ def _extract_certificate_number(text: str) -> tuple[Optional[str], float]:
             return cert_num, 0.95
 
     m = re.search(
-        r"(?:certificate\s*(?:sl\s*)?(?:no|number)|cert\s*no)\s*[:\-]?\s*([A-Z0-9/\-]{4,25})\b",
+        r"(?:certificate\s*(?:sl\.?\s*)?(?:no|number)|cert\s*no)\s*[:\-]?\s*([A-Z0-9/\-]{4,25})\b",
         text, re.IGNORECASE
     )
     if m and not m.group(1).isalpha():
@@ -292,7 +292,7 @@ def _extract_certificate_number(text: str) -> tuple[Optional[str], float]:
         return m.group(1).strip(), 0.95
 
     for i, ln in enumerate(lines):
-        if re.search(r"certificate\s*(?:sl\s*)?no", ln, re.IGNORECASE):
+        if re.search(r"certificate\s*(?:sl\.?\s*)?no", ln, re.IGNORECASE):
             for j in range(i + 1, min(i + 4, len(lines))):
                 digits = re.search(r"\b(\d{6,15})\b", lines[j])
                 if digits:

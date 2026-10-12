@@ -48,7 +48,7 @@ def load_image_as_array(file_bytes: bytes, file_type: str) -> np.ndarray:
         raise RuntimeError(f"Failed to load image file: {exc}") from exc
 
 
-def _pdf_pages_to_arrays(pdf_bytes: bytes, dpi: int = 200) -> list[dict]:
+def _pdf_pages_to_arrays(pdf_bytes: bytes, dpi: int = 250) -> list[dict]:
     """
     Renders ALL pages of a PDF to BGR numpy arrays.
 

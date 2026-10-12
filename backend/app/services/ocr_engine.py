@@ -111,20 +111,25 @@ class OCREngineResult:
         self.engines_used = engines_used
 
 
+_last_easyocr_error: str | None = None
+
 @lru_cache(maxsize=1)
 def _load_easyocr_reader():
+    global _last_easyocr_error
     t0 = time.time()
     try:
         import easyocr
         logger.info("Loading EasyOCR model (English, CPU)...")
-        reader = easyocr.Reader(["en"], gpu=False)
+        reader = easyocr.Reader(["en"], gpu=False, verbose=False)
         logger.info("✔ EasyOCR model loaded in %.1fs", time.time() - t0)
         return reader
     except ImportError:
-        logger.warning("EasyOCR not installed (pip install easyocr)")
+        _last_easyocr_error = "EasyOCR not installed (pip install easyocr)"
+        logger.warning(_last_easyocr_error)
         return None
     except Exception as e:
-        logger.error("EasyOCR model loading failed: %s", e, exc_info=True)
+        _last_easyocr_error = f"EasyOCR model loading failed: {e}"
+        logger.error(_last_easyocr_error, exc_info=True)
         return None
 
 
@@ -214,14 +219,11 @@ def _run_fitz_fallback(pdf_path: str | None = None) -> tuple[str, float] | None:
     try:
         import fitz
         import os
-        target_path = pdf_path
-        if not target_path or not os.path.exists(target_path):
-            target_path = "./sample_certificate.pdf" if os.path.exists("./sample_certificate.pdf") else "../sample_certificate.pdf"
-        if target_path and os.path.exists(target_path):
-            doc = fitz.open(target_path)
+        if pdf_path and os.path.exists(pdf_path):
+            doc = fitz.open(pdf_path)
             extracted_text = "\n".join(page.get_text() for page in doc)
             if len(extracted_text.strip()) > 10:
-                logger.info("✔ PyMuPDF Fallback text extractor succeeded for %s | len=%d", target_path, len(extracted_text))
+                logger.info("✔ PyMuPDF Fallback text extractor succeeded for %s | len=%d", pdf_path, len(extracted_text))
                 return extracted_text, 0.88
     except Exception as e:
         logger.warning("PyMuPDF fallback failed: %s", e)
@@ -329,10 +331,12 @@ def extract_text_and_bboxes(
             engines_used.append("fitz_pdf_extractor")
 
     if not engines_used:
-        raise RuntimeError(
+        detail_reason = _last_easyocr_error or (
             "No OCR engine is available (EasyOCR and Tesseract both failed to load). "
             "Install at least one: `pip install easyocr` or system package `tesseract-ocr`."
         )
+        logger.error("OCR execution failed: %s", detail_reason)
+        raise RuntimeError(detail_reason)
 
     raw_text = "\n".join(combined_text_parts)
     accuracy = float(np.mean(weighted_scores)) if weighted_scores else 0.0
@@ -603,10 +607,12 @@ def extract_text_and_bboxes_fused(
             engines_used.append("fitz_pdf_extractor")
 
     if not engines_used:
-        raise RuntimeError(
+        detail_reason = _last_easyocr_error or (
             "No OCR engine is available (EasyOCR and Tesseract both failed to load). "
             "Install at least one: `pip install easyocr` or system package `tesseract-ocr`."
         )
+        logger.error("OCR execution failed: %s", detail_reason)
+        raise RuntimeError(detail_reason)
 
     # ── Intelligent fusion ──────────────────────────────────────────────
     if len(engines_used) == 2 and easyocr_text.strip() and tesseract_text.strip():
